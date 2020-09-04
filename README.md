@@ -1,2 +1,2 @@
-# mlp-rust
-A multi-layer perceptron implemented purely in safe Rust.
+# Multilayer Perceptron in Rust
+A multilayer perceptron implemented purely in safe Rust.
