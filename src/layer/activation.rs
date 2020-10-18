@@ -1,29 +1,17 @@
 extern crate ndarray;
-use super::{tensor::Tensor, type_def::MLPFloat};
+use super::super::custom_types::custom_traits::{MLPFloat, Tensor};
 use ndarray::prelude::*;
 
-pub enum ActivationFunction {
+pub enum ActivationLayer {
     TanH,
     ReLu,
     LeakyReLu,
 }
 
-impl<T> Tensor<T> for ActivationFunction
+impl<T> Tensor<T> for ActivationLayer
 where
     T: MLPFloat,
 {
-    /// Forward propagation of activation functions. Takes 2-D array as argument and returns 2-D array as result.
-    /// Data samples are row-based.
-    /// ```rust
-    /// extern crate ndarray;
-    /// use ndarray::prelude::*;
-    /// use mlp_rust::{ActivationFunction, Tensor};
-    ///
-    /// let rand_arr = arr2(&[[-1., 2.]]);
-    /// let forward_res = ActivationFunction::ReLu.forward(&rand_arr);
-    ///
-    /// assert_eq!(forward_res, arr2(&[[0., 2.]]));
-    /// ```
     fn forward(&self, input: &Array2<T>) -> Array2<T>
     where
         T: MLPFloat,
@@ -60,5 +48,20 @@ where
         };
         debug_assert_eq!(res.shape(), output.shape());
         res
+    }
+}
+
+#[cfg(test)]
+mod unit_test {
+    extern crate ndarray;
+    use super::super::super::custom_types::custom_traits::Tensor;
+    use super::ActivationLayer;
+    use ndarray::prelude::*;
+
+    #[test]
+    fn test_relu_forward() {
+        let rand_arr = arr2(&[[-1., 2.]]);
+        let forward_res = ActivationLayer::ReLu.forward(&rand_arr);
+        assert_eq!(forward_res, arr2(&[[0., 2.]]));
     }
 }

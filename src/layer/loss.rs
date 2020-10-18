@@ -1,15 +1,15 @@
 extern crate ndarray;
-use super::type_def::MLPFloat;
+use super::super::custom_types::custom_traits::MLPFloat;
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
-pub enum LossFunction {
+pub enum LossLayer {
     MSE,
     SoftmaxCrossEntropy,
 }
 
-impl LossFunction {
+impl LossLayer {
     fn forward<T>(&self, input: &Array2<T>) -> Array2<T>
     where
         T: MLPFloat,

@@ -1,6 +1,11 @@
 extern crate ndarray;
-use super::type_def::MLPFloat;
 use ndarray::prelude::*;
+
+use ndarray_stats::MaybeNan;
+use num_traits::{Float, FromPrimitive};
+use std::cmp::PartialOrd;
+
+pub trait MLPFloat: Float + FromPrimitive + PartialOrd + MaybeNan {}
 
 pub trait Tensor<T>
 where
@@ -13,3 +18,6 @@ where
         self.backward_batch(output).mean_axis(Axis(0)).unwrap()
     }
 }
+
+impl MLPFloat for f32 {}
+impl MLPFloat for f64 {}
