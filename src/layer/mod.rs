@@ -1,3 +1,3 @@
 pub mod activation;
-pub mod loss;
+pub mod output_and_loss;
 pub mod weight;
