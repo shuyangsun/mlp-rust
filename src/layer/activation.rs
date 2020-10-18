@@ -64,4 +64,27 @@ mod unit_test {
         let forward_res = ActivationLayer::ReLu.forward(&rand_arr);
         assert_eq!(forward_res, arr2(&[[0., 2.]]));
     }
+
+    #[test]
+    fn test_relu_backward() {
+        let rand_arr = arr2(&[[-1., 2.]]);
+        let forward_res = ActivationLayer::ReLu.forward(&rand_arr);
+        let backward_res = ActivationLayer::ReLu.backward(&forward_res);
+        assert_eq!(backward_res, arr1(&[0., 1.]));
+    }
+
+    #[test]
+    fn test_leaky_relu_forward() {
+        let rand_arr = arr2(&[[-1., 2.]]);
+        let forward_res = ActivationLayer::LeakyReLu.forward(&rand_arr);
+        assert_eq!(forward_res, arr2(&[[-0.1, 2.]]));
+    }
+
+    #[test]
+    fn test_leaky_relu_backward() {
+        let rand_arr = arr2(&[[-1., 2.]]);
+        let forward_res = ActivationLayer::LeakyReLu.forward(&rand_arr);
+        let backward_res = ActivationLayer::LeakyReLu.backward(&forward_res);
+        assert_eq!(backward_res, arr1(&[0.1, 1.]));
+    }
 }
