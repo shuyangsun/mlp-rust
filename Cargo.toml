@@ -11,6 +11,7 @@ num-traits = "0.2.12"
 ndarray = "0.13.1"
 ndarray-rand = "0.11.0"
 ndarray-stats = "0.3.0"
+rand = "0.7.3"
 
 [profile.dev]
 opt-level = 0

@@ -10,10 +10,11 @@ pub enum LossLayer {
 }
 
 impl LossLayer {
-    fn forward<T>(&self, input: &Array2<T>) -> Array2<T>
+    fn forward<T>(&self, input: &Box<Array2<T>>) -> Box<Array2<T>>
     where
         T: MLPFloat,
     {
+        let input = input.as_ref();
         let res: Array2<T> = match self {
             Self::MSE => input.clone(),
             Self::SoftmaxCrossEntropy => {
@@ -28,15 +29,15 @@ impl LossLayer {
             }
         };
         debug_assert_eq!(res.shape(), input.shape());
-        res
+        Box::new(res)
     }
 
-    fn backward<T>(&self, output: &Array2<T>, actual: &Array2<T>) -> Array1<T>
+    fn backward<T>(&self, output: &Box<Array2<T>>, actual: &Box<Array2<T>>) -> Box<Array1<T>>
     where
         T: MLPFloat,
     {
-        let res: Array2<T> = output - actual;
+        let res: Array2<T> = output.as_ref() - actual;
         debug_assert_eq!(res.shape(), output.shape());
-        res.mean_axis(Axis(0)).unwrap()
+        Box::new(res.mean_axis(Axis(0)).unwrap())
     }
 }
