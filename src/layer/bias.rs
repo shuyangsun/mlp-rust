@@ -1,5 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::custom_traits::{MLPFloat, Tensor};
+use super::super::custom_types::numerical_traits::MLPFloat;
+use super::super::custom_types::tensor_traits::{Tensor, TensorUpdatable};
 use ndarray::prelude::*;
 
 pub struct Bias<T>

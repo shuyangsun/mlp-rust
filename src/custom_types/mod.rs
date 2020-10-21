@@ -1,1 +1,2 @@
-pub mod custom_traits;
+pub mod numerical_traits;
+pub mod tensor_traits;

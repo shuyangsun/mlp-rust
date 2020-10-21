@@ -1,5 +1,5 @@
 extern crate ndarray;
-use super::super::custom_types::custom_traits::MLPFloat;
+use super::super::custom_types::numerical_traits::MLPFloat;
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;

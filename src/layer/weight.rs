@@ -1,7 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::custom_traits::{
-    MLPFLoatRandSampling, MLPFloat, Tensor, TensorUpdatable,
-};
+use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
+use super::super::custom_types::tensor_traits::{Tensor, TensorUpdatable};
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;

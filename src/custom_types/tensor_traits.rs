@@ -1,13 +1,6 @@
 extern crate ndarray;
+use super::numerical_traits::MLPFloat;
 use ndarray::prelude::*;
-
-use ndarray_stats::MaybeNan;
-use num_traits::{Float, FromPrimitive};
-use rand::distributions::uniform::SampleUniform;
-use std::cmp::PartialOrd;
-
-pub trait MLPFloat: 'static + Float + FromPrimitive + PartialOrd + MaybeNan {}
-pub trait MLPFLoatRandSampling: MLPFloat + SampleUniform {}
 
 pub trait Tensor<T>
 where
@@ -26,7 +19,7 @@ where
     }
 }
 
-pub trait TensorUpdatable<T>: Tensor<T>
+pub trait TensorUpdatable<T>
 where
     T: MLPFloat,
 {
@@ -43,9 +36,3 @@ where
         original_mat.assign(&update_res);
     }
 }
-
-impl MLPFloat for f32 {}
-impl MLPFloat for f64 {}
-
-impl MLPFLoatRandSampling for f32 {}
-impl MLPFLoatRandSampling for f64 {}

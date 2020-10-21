@@ -1,5 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::custom_traits::{MLPFloat, Tensor};
+use super::super::custom_types::numerical_traits::MLPFloat;
+use super::super::custom_types::tensor_traits::Tensor;
 use ndarray::prelude::*;
 
 pub enum ActivationLayer {
@@ -54,7 +55,7 @@ where
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;
-    use super::super::super::custom_types::custom_traits::Tensor;
+    use super::super::super::custom_types::tensor_traits::Tensor;
     use super::ActivationLayer;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
