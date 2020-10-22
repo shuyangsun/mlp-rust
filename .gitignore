@@ -1,6 +1,10 @@
 # Mac OS
 .DS_Store
 
+# Windows
+*.exe
+*.pdb
+
 # IDE
 .vs
 .vscode
