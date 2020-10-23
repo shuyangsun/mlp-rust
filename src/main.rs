@@ -11,10 +11,12 @@ fn main() {
     let mut asdf = arr2(&[[1., 2.], [3., 4.]]);
     asdf[[0, 0]] = 100.;
     let mut asdf_dyn = asdf.into_dyn();
-    let view_1 = asdf_dyn.view();
+    let view_1 = asdf_dyn.view_mut();
     println!("View 1: {}", view_1);
-    let back: ArrayView2<f64> = view_1.into_dimensionality().unwrap();
-    println!("{}", back);
+    let mut back: ArrayViewMut2<f64> = view_1.into_dimensionality().unwrap();
+    back[[0, 1]] = 1000.;
+    println!("Back: {}", back);
+    println!("asdf_dyn: {}", asdf_dyn);
     let mut cde = asdf_dyn.view_mut();
     cde.assign(&arr2(&[[2., 2.], [2., 2.]]));
     println!("{}", asdf_dyn.view());

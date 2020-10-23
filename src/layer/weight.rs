@@ -1,6 +1,6 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::custom_types::tensor_traits::{Tensor, TensorUpdatable};
+use super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
@@ -10,26 +10,22 @@ where
     T: MLPFloat,
 {
     is_frozen: bool,
-    weight_mat: Box<Array2<T>>,
+    weight_mat: ArrayD<T>, // n1 x n2
 }
 
-impl<T> Tensor<T> for Weight<T>
+impl<T> TensorComputable<T> for Weight<T>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> Box<ArrayD<T>> {
-        assert_eq!(input.shape().len(), 2);
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        assert_eq!(input.ndim(), 2);
         let input_2d: ArrayView2<T> = input.into_dimensionality().unwrap();
-        let mat_mul_res = self
-            .weight_mat
-            .view()
-            .dot(&input_2d)
-            .into_dimensionality()
-            .unwrap();
-        Box::new(mat_mul_res)
+        let weight_2d: ArrayView2<T> = self.weight_mat.view().into_dimensionality().unwrap();
+        let mat_mul_res = weight_2d.dot(&input_2d).into_dimensionality().unwrap();
+        mat_mul_res
     }
 
-    fn backward_batch(&self, output: ArrayViewD<T>) -> Box<ArrayD<T>> {
+    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 }
@@ -54,10 +50,11 @@ where
     fn new(from_layer_size: usize, to_layer_size: usize) -> Self {
         Self {
             is_frozen: false,
-            weight_mat: Box::new(Array::random(
+            weight_mat: Array::random(
                 (from_layer_size, to_layer_size),
                 Uniform::new(-T::one(), T::one()),
-            )),
+            )
+            .into_dyn(),
         }
     }
 }

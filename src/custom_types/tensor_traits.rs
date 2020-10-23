@@ -2,20 +2,15 @@ extern crate ndarray;
 use super::numerical_traits::MLPFloat;
 use ndarray::prelude::*;
 
-pub trait Tensor<T>
+pub trait TensorComputable<T>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> Box<ArrayD<T>>;
-    fn backward_batch(&self, output: ArrayViewD<T>) -> Box<ArrayD<T>>;
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
+    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T>;
 
-    fn backward(&self, output: ArrayViewD<T>) -> Box<ArrayD<T>> {
-        Box::new(
-            self.backward_batch(output)
-                .as_ref()
-                .mean_axis(Axis(0))
-                .unwrap(),
-        )
+    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+        self.backward_batch(output).mean_axis(Axis(0)).unwrap()
     }
 }
 
