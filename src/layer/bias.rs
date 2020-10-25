@@ -15,7 +15,7 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!()
+        &input + &self.bias_arr.view()
     }
 
     fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {

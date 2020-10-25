@@ -32,7 +32,7 @@ where
                 exp / axis_sum
             }
         };
-        debug_assert_eq!(res.shape(), input.shape());
+        assert_eq!(res.shape(), input.shape());
         res
     }
 

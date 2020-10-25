@@ -22,6 +22,7 @@ where
         let input_2d: ArrayView2<T> = input.into_dimensionality().unwrap();
         let weight_2d: ArrayView2<T> = self.weight_mat.view().into_dimensionality().unwrap();
         let mat_mul_res = weight_2d.dot(&input_2d).into_dimensionality().unwrap();
+        assert_eq!(mat_mul_res.ndim(), 2);
         mat_mul_res
     }
 

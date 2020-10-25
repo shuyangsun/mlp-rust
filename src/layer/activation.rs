@@ -28,7 +28,7 @@ where
                 }
             }),
         };
-        debug_assert_eq!(res.shape(), input.shape());
+        assert_eq!(res.shape(), input.shape());
         res
     }
 
@@ -47,7 +47,7 @@ where
                 }
             }),
         };
-        debug_assert_eq!(res.shape(), output.shape());
+        assert_eq!(res.shape(), output.shape());
         res
     }
 }
