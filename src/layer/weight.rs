@@ -40,7 +40,7 @@ where
     }
 
     fn updatable_mat(&mut self) -> ArrayViewMutD<T> {
-        self.weight_mat.view_mut().into_dyn()
+        self.weight_mat.view_mut()
     }
 }
 
