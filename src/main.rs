@@ -1,5 +1,7 @@
 extern crate ndarray;
 use ndarray::prelude::*;
+use ndarray_rand::rand_distr::Uniform;
+use ndarray_rand::RandomExt;
 
 fn main() {
     let arr_1 = &arr2(&[[1., 2.], [3., 4.]]);
@@ -22,4 +24,10 @@ fn main() {
     println!("{}", asdf_dyn.view());
     let fdddsfsf: ArrayView2<f64> = asdf_dyn.view().into_dimensionality().unwrap();
     println!("{}", fdddsfsf);
+
+    println!("Mat mul started...");
+    let big_mat_1 = Array2::random((1024, 2048), Uniform::new(-1., 1.));
+    let big_mat_2 = Array2::random((2048, 1024), Uniform::new(-1., 1.));
+    let res = big_mat_1.dot(&big_mat_2);
+    println!("Mat mul finished: {}", res.sum());
 }

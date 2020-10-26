@@ -3,7 +3,7 @@ use num_traits::{Float, FromPrimitive};
 use rand::distributions::uniform::SampleUniform;
 use std::cmp::PartialOrd;
 
-pub trait MLPFloat: 'static + Float + FromPrimitive + PartialOrd + MaybeNan {}
+pub trait MLPFloat: 'static + Float + FromPrimitive + PartialOrd + MaybeNan + Send + Sync {}
 pub trait MLPFLoatRandSampling: MLPFloat + SampleUniform {}
 
 impl MLPFloat for f32 {}

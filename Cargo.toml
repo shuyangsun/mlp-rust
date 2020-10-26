@@ -8,10 +8,12 @@ edition = "2018"
 
 [dependencies]
 num-traits = "0.2.12"
-ndarray = "0.13.1"
+ndarray = { version = "0.13.1", features = ["rayon"] }
+#ndarray-linalg = { version = "0.12.1", features = ["openblas"] }
 ndarray-rand = "0.11.0"
 ndarray-stats = "0.3.0"
 rand = "0.7.3"
+rayon = "1.5.0"
 
 [profile.dev]
 opt-level = 0

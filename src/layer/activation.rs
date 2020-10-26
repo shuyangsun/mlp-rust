@@ -17,10 +17,11 @@ where
     where
         T: MLPFloat,
     {
-        let res = match self {
-            Self::TanH => input.mapv(|ele| ele.sinh().div(ele.cosh())),
-            Self::ReLu => input.mapv(|ele| ele.max(T::zero())),
-            Self::LeakyReLu => input.mapv(|ele| {
+        let mut res: ArrayD<T> = input.into_owned();
+        match self {
+            Self::TanH => res.par_mapv_inplace(|ele| ele.sinh().div(ele.cosh())),
+            Self::ReLu => res.par_mapv_inplace(|ele| ele.max(T::zero())),
+            Self::LeakyReLu => res.par_mapv_inplace(|ele| {
                 if ele > T::zero() {
                     ele
                 } else {
@@ -28,7 +29,6 @@ where
                 }
             }),
         };
-        assert_eq!(res.shape(), input.shape());
         res
     }
 
@@ -36,10 +36,13 @@ where
     where
         T: MLPFloat,
     {
-        let res = match self {
-            Self::TanH => output.mapv(|ele| T::one() - ele.powi(2)),
-            Self::ReLu => output.mapv(|ele| if ele > T::zero() { T::one() } else { T::zero() }),
-            Self::LeakyReLu => output.mapv(|ele| {
+        let mut res: ArrayD<T> = output.into_owned();
+        match self {
+            Self::TanH => res.par_mapv_inplace(|ele| T::one() - ele.powi(2)),
+            Self::ReLu => {
+                res.par_mapv_inplace(|ele| if ele > T::zero() { T::one() } else { T::zero() })
+            }
+            Self::LeakyReLu => res.par_mapv_inplace(|ele| {
                 if ele > T::zero() {
                     T::one()
                 } else {
@@ -47,7 +50,6 @@ where
                 }
             }),
         };
-        assert_eq!(res.shape(), output.shape());
         res
     }
 }
