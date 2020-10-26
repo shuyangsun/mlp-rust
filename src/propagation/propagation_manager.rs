@@ -29,6 +29,12 @@ where
     pub fn push(&mut self, layer: Box<dyn TensorComputable<T>>) {
         self.layers.push(layer)
     }
+
+    pub fn forward_no_cache(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        let res = self.forward(input);
+        self.layer_outputs.borrow_mut().clear();
+        res
+    }
 }
 
 impl<T> TensorComputable<T> for PropagationManager<T>
