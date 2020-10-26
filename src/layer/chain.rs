@@ -1,9 +1,9 @@
-use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::TensorComputable;
+use crate::custom_types::numerical_traits::MLPFloat;
+use crate::custom_types::tensor_traits::TensorComputable;
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
-pub struct PropagationManager<T>
+pub struct LayerChain<T>
 where
     T: MLPFloat,
 {
@@ -11,7 +11,7 @@ where
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
 
-impl<T> PropagationManager<T>
+impl<T> LayerChain<T>
 where
     T: MLPFloat,
 {
@@ -37,7 +37,7 @@ where
     }
 }
 
-impl<T> TensorComputable<T> for PropagationManager<T>
+impl<T> TensorComputable<T> for LayerChain<T>
 where
     T: MLPFloat,
 {
@@ -62,12 +62,12 @@ where
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;
-    use super::super::super::custom_types::tensor_traits::TensorComputable;
-    use super::super::super::layer::{
+    use super::LayerChain;
+    use crate::custom_types::tensor_traits::TensorComputable;
+    use crate::layer::{
         activation::Activation, bias::Bias, normalization::BatchNormalization,
         output_and_loss::Loss, weight::Weight,
     };
-    use super::PropagationManager;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -76,7 +76,7 @@ mod unit_test {
     fn test_propagation_manager_forward() {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let simple_dnn = PropagationManager::new_from_layers(vec![
+        let simple_dnn = LayerChain::new_from_layers(vec![
             Box::new(Weight::new_random_uniform(10, 128)),
             Box::new(Bias::new(128)),
             Box::new(Activation::TanH),

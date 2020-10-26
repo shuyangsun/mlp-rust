@@ -58,7 +58,7 @@ where
 mod unit_test {
     extern crate ndarray;
 
-    use super::super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
+    use super::super::super::custom_types::tensor_traits::TensorComputable;
     use super::Bias;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
