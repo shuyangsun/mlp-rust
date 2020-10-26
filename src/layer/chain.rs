@@ -1,5 +1,6 @@
 use crate::custom_types::numerical_traits::MLPFloat;
 use crate::custom_types::tensor_traits::TensorComputable;
+use crate::layer::weight::Weight;
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
@@ -30,10 +31,32 @@ where
         self.layers.push(layer)
     }
 
-    pub fn forward_no_cache(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        let res = self.forward(input);
-        self.layer_outputs.borrow_mut().clear();
-        res
+    pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward_helper(input, false)
+    }
+
+    pub fn output_diff(&self, expected: ArrayViewD<T>, actual: ArrayViewD<T>) -> ArrayD<T> {
+        &expected - &actual
+    }
+
+    fn forward_helper(&self, input: ArrayViewD<T>, should_cache_layer_outputs: bool) -> ArrayD<T> {
+        if self.layers.is_empty() {
+            panic!("Cannot calculate feed forward propagation with no layer specified.");
+        }
+        let first_res = self.layers.first().unwrap().forward(input);
+        self.layer_outputs.borrow_mut().push(first_res);
+        for layer in &self.layers[1..] {
+            let next = layer.forward(self.layer_outputs.borrow().last().unwrap().view());
+            if !should_cache_layer_outputs {
+                self.layer_outputs.borrow_mut().clear()
+            }
+            self.layer_outputs.borrow_mut().push(next);
+        }
+        if should_cache_layer_outputs {
+            self.layer_outputs.borrow().last().unwrap().clone()
+        } else {
+            self.layer_outputs.borrow_mut().pop().unwrap()
+        }
     }
 }
 
@@ -42,16 +65,7 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        if self.layers.is_empty() {
-            panic!("Cannot calculate feed forward propagation with no layer specified.");
-        }
-        let first_res = self.layers.first().unwrap().forward(input);
-        self.layer_outputs.borrow_mut().push(first_res);
-        for layer in &self.layers[1..] {
-            let next = layer.forward(self.layer_outputs.borrow().last().unwrap().view());
-            self.layer_outputs.borrow_mut().push(next);
-        }
-        self.layer_outputs.borrow().last().unwrap().clone()
+        self.forward_helper(input, true)
     }
 
     fn backward_batch(&self, _: ArrayViewD<T>) -> ArrayD<T> {
