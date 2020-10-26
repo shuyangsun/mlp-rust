@@ -28,6 +28,7 @@ where
         }
         let mut original_mat = self.updatable_mat();
         let update_res: ArrayD<T> = &original_mat - &gradient_last_layer;
+        assert_eq!(update_res.shape(), original_mat.shape());
         original_mat.assign(&update_res);
     }
 }
