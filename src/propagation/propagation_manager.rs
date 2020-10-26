@@ -48,7 +48,40 @@ where
         self.layer_outputs.borrow().last().unwrap().clone()
     }
 
-    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward_batch(&self, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
+    }
+}
+
+#[cfg(test)]
+mod unit_test {
+    extern crate ndarray;
+    use super::super::super::custom_types::tensor_traits::TensorComputable;
+    use super::super::super::layer::{
+        activation::Activation, bias::Bias, normalization::BatchNormalization,
+        output_and_loss::Loss, weight::Weight,
+    };
+    use super::PropagationManager;
+    use ndarray::prelude::*;
+    use ndarray_rand::rand_distr::Uniform;
+    use ndarray_rand::RandomExt;
+
+    #[test]
+    fn test_propagation_manager_forward() {
+        let shape = [3, 10];
+        let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
+        let simple_dnn = PropagationManager::new_from_layers(vec![
+            Box::new(Weight::new_random_uniform(10, 128)),
+            Box::new(Bias::new(128)),
+            Box::new(Activation::TanH),
+            Box::new(Weight::new_random_uniform(128, 64)),
+            Box::new(Activation::TanH),
+            Box::new(BatchNormalization::new(64)),
+            Box::new(Weight::new_random_uniform(64, 1)),
+            Box::new(Bias::new(1)),
+            Box::new(Loss::MSE),
+        ]);
+        let forward_res = simple_dnn.forward(input_data.view());
+        assert_eq!(forward_res.shape(), &[3usize, 1usize]);
     }
 }

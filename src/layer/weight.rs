@@ -48,7 +48,7 @@ impl<T> Weight<T>
 where
     T: MLPFloat + MLPFLoatRandSampling,
 {
-    fn new_random_uniform(from_layer_size: usize, to_layer_size: usize) -> Self {
+    pub fn new_random_uniform(from_layer_size: usize, to_layer_size: usize) -> Self {
         Self {
             is_frozen: false,
             weight_mat: Array::random(
@@ -59,7 +59,7 @@ where
         }
     }
 
-    fn new_random_uniform_frozen(from_layer_size: usize, to_layer_size: usize) -> Self {
+    pub fn new_random_uniform_frozen(from_layer_size: usize, to_layer_size: usize) -> Self {
         let mut res = Self::new_random_uniform(from_layer_size, to_layer_size);
         res.is_frozen = true;
         res

@@ -5,12 +5,12 @@ use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
-pub enum LossLayer {
+pub enum Loss {
     MSE,
     SoftmaxCrossEntropy,
 }
 
-impl<T> TensorComputable<T> for LossLayer
+impl<T> TensorComputable<T> for Loss
 where
     T: MLPFloat,
 {

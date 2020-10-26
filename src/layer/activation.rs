@@ -3,13 +3,13 @@ use super::super::custom_types::numerical_traits::MLPFloat;
 use super::super::custom_types::tensor_traits::TensorComputable;
 use ndarray::prelude::*;
 
-pub enum ActivationLayer {
+pub enum Activation {
     TanH,
     ReLu,
     LeakyReLu,
 }
 
-impl<T> TensorComputable<T> for ActivationLayer
+impl<T> TensorComputable<T> for Activation
 where
     T: MLPFloat,
 {
@@ -58,7 +58,7 @@ where
 mod unit_test {
     extern crate ndarray;
     use super::super::super::custom_types::tensor_traits::TensorComputable;
-    use super::ActivationLayer;
+    use super::Activation;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -66,7 +66,7 @@ mod unit_test {
     #[test]
     fn test_relu_forward() {
         let rand_arr = arr2(&[[-1., 2.]]);
-        let forward_res = ActivationLayer::ReLu.forward(rand_arr.into_dyn().view());
+        let forward_res = Activation::ReLu.forward(rand_arr.into_dyn().view());
         assert_eq!(forward_res, arr2(&[[0., 2.]]).into_dyn());
     }
 
@@ -74,30 +74,30 @@ mod unit_test {
     fn test_relu_forward_random_arr() {
         let shape = [2, 5];
         let rand_arr = Array::random(shape, Uniform::new(0., 10.));
-        let forward_res = ActivationLayer::ReLu.forward(rand_arr.into_dyn().view());
+        let forward_res = Activation::ReLu.forward(rand_arr.into_dyn().view());
         assert_eq!(forward_res.shape(), &shape);
     }
 
     #[test]
     fn test_relu_backward() {
         let rand_arr = arr2(&[[-1., 2.]]);
-        let forward_res = ActivationLayer::ReLu.forward(rand_arr.into_dyn().view());
-        let backward_res = ActivationLayer::ReLu.backward(forward_res.view());
+        let forward_res = Activation::ReLu.forward(rand_arr.into_dyn().view());
+        let backward_res = Activation::ReLu.backward(forward_res.view());
         assert_eq!(backward_res, arr1(&[0., 1.]).into_dyn());
     }
 
     #[test]
     fn test_leaky_relu_forward() {
         let rand_arr = Box::new(arr2(&[[-1., 2.]]));
-        let forward_res = ActivationLayer::LeakyReLu.forward(rand_arr.into_dyn().view());
+        let forward_res = Activation::LeakyReLu.forward(rand_arr.into_dyn().view());
         assert_eq!(forward_res, arr2(&[[-0.1, 2.]]).into_dyn());
     }
 
     #[test]
     fn test_leaky_relu_backward() {
         let rand_arr = Box::new(arr2(&[[-1., 2.]]));
-        let forward_res = ActivationLayer::LeakyReLu.forward(rand_arr.into_dyn().view());
-        let backward_res = ActivationLayer::LeakyReLu.backward(forward_res.view());
+        let forward_res = Activation::LeakyReLu.forward(rand_arr.into_dyn().view());
+        let backward_res = Activation::LeakyReLu.backward(forward_res.view());
         assert_eq!(backward_res, arr1(&[0.1, 1.]).into_dyn());
     }
 }

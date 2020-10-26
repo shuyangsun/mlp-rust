@@ -40,14 +40,14 @@ impl<T> Bias<T>
 where
     T: MLPFloat + MLPFLoatRandSampling,
 {
-    fn new(size: usize) -> Self {
+    pub fn new(size: usize) -> Self {
         Self {
             is_frozen: false,
             bias_arr: Array2::zeros((1, size)).into_dyn(),
         }
     }
 
-    fn new_frozen(size: usize) -> Self {
+    pub fn new_frozen(size: usize) -> Self {
         let mut res = Self::new(size);
         res.is_frozen = true;
         res
