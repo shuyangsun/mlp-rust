@@ -16,10 +16,10 @@ where
     T: MLPFloat,
 {
     pub fn new() -> Self {
-        Self::new_from_layers(Vec::new())
+        Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_layers(layers: Vec<Box<dyn TensorComputable<T>>>) -> Self {
+    pub fn new_from_sublayers(layers: Vec<Box<dyn TensorComputable<T>>>) -> Self {
         Self {
             layers,
             layer_outputs: RefCell::new(Vec::new()),
@@ -76,7 +76,7 @@ mod unit_test {
     fn test_propagation_manager_forward() {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let simple_dnn = LayerChain::new_from_layers(vec![
+        let simple_dnn = LayerChain::new_from_sublayers(vec![
             Box::new(Weight::new_random_uniform(10, 128)),
             Box::new(Bias::new(128)),
             Box::new(Activation::TanH),
