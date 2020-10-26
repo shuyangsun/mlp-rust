@@ -8,6 +8,7 @@ pub struct BatchNormalization<T>
 where
     T: MLPFloat,
 {
+    is_frozen: bool,
     size: usize,
     mean: RefCell<Option<ArrayD<T>>>,
     std_stable: RefCell<Option<ArrayD<T>>>,
@@ -59,12 +60,19 @@ where
 {
     pub fn new(size: usize) -> Self {
         Self {
+            is_frozen: false,
             size,
             mean: RefCell::new(None),
             std_stable: RefCell::new(None),
             gama: T::one(),
             beta: T::zero(),
         }
+    }
+
+    pub fn new_frozen(size: usize) -> Self {
+        let mut res = Self::new(size);
+        res.is_frozen = true;
+        res
     }
 
     fn update_mean(&self, mean: ArrayD<T>) {

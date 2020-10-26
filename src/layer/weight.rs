@@ -58,4 +58,10 @@ where
             .into_dyn(),
         }
     }
+
+    fn new_frozen(from_layer_size: usize, to_layer_size: usize) -> Self {
+        let mut res = Self::new(from_layer_size, to_layer_size);
+        res.is_frozen = true;
+        res
+    }
 }

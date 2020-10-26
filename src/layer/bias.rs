@@ -46,4 +46,10 @@ where
             bias_arr: Array2::zeros((1, size)).into_dyn(),
         }
     }
+
+    fn new_frozen(size: usize) -> Self {
+        let mut res = Self::new(size);
+        res.is_frozen = true;
+        res
+    }
 }
