@@ -28,6 +28,9 @@ impl<T> TensorUpdatable<T> for Bias<T>
 where
     T: MLPFloat,
 {
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
     fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
         self.bias_arr.view_mut()
     }
