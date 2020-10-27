@@ -20,8 +20,8 @@ where
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         linalg::mat_mul(
-            input.into_dimensionality::<Ix2>().unwrap(),
-            self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
+            &input.into_dimensionality::<Ix2>().unwrap(),
+            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
         )
         .into_dyn()
     }
@@ -32,8 +32,8 @@ where
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         linalg::par_mat_mul(
-            input.into_dimensionality::<Ix2>().unwrap(),
-            self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
+            &input.into_dimensionality::<Ix2>().unwrap(),
+            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
         )
         .into_dyn()
     }

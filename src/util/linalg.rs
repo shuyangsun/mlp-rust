@@ -7,24 +7,24 @@ use rayon::prelude::*;
 use self::ndarray::RemoveAxis;
 use super::super::custom_types::numerical_traits::MLPFloat;
 
-pub fn mat_mul<T>(lhs: ArrayView2<T>, rhs: ArrayView2<T>) -> Array2<T>
+pub fn mat_mul<T>(lhs: &ArrayView2<T>, rhs: &ArrayView2<T>) -> Array2<T>
 where
     T: MLPFloat,
 {
     assert_eq!(lhs.ndim(), 2);
     assert_eq!(rhs.ndim(), 2);
     assert_eq!(lhs.ncols(), rhs.nrows());
-    lhs.dot(&rhs).into_dimensionality().unwrap()
+    lhs.dot(rhs).into_dimensionality().unwrap()
 }
 
-pub fn par_mat_mul<T>(lhs: ArrayView2<T>, rhs: ArrayView2<T>) -> Array2<T>
+pub fn par_mat_mul<T>(lhs: &ArrayView2<T>, rhs: &ArrayView2<T>) -> Array2<T>
 where
     T: MLPFloat,
 {
     assert_eq!(lhs.ndim(), 2);
     assert_eq!(rhs.ndim(), 2);
     assert_eq!(lhs.ncols(), rhs.nrows());
-    par_arr_operation(&lhs, |lhs_sub: &ArrayView2<T>| lhs_sub.dot(&rhs))
+    par_arr_operation(&lhs, |lhs_sub: &ArrayView2<T>| mat_mul(lhs_sub, &rhs))
 }
 
 fn par_arr_operation<'a, T, D, F>(arr_view: &'a ArrayView<T, D>, operation: F) -> Array<T, D>
@@ -86,8 +86,8 @@ mod unit_test {
     fn test_mat_mul_1() {
         let lhs = arr2(&[[1.5, -2.], [1.3, 2.1], [1.1, 0.5]]);
         let rhs = arr2(&[[1.5, -2., 1., 2.], [1.3, 2.1, 9., -8.2]]);
-        let res = mat_mul(lhs.view(), rhs.view());
-        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        let res = mat_mul(&lhs.view(), &rhs.view());
+        let par_res = par_mat_mul(&lhs.view(), &rhs.view());
         assert_eq!(res.shape(), &[3, 4]);
         assert_eq!(res, par_res);
     }
@@ -98,8 +98,8 @@ mod unit_test {
         let shape_2 = [10, 5];
         let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
         let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
-        let res = mat_mul(lhs.view(), rhs.view());
-        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        let res = mat_mul(&lhs.view(), &rhs.view());
+        let par_res = par_mat_mul(&lhs.view(), &rhs.view());
         assert_eq!(res.shape(), &[shape_1[0], shape_2[1]]);
         assert_eq!(res, par_res);
     }
@@ -110,7 +110,7 @@ mod unit_test {
         let shape_2 = [1000, 500];
         let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
         let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
-        let res = mat_mul(lhs.view(), rhs.view());
+        let res = mat_mul(&lhs.view(), &rhs.view());
         assert_eq!(res.shape(), &[shape_1[0], shape_2[1]]);
     }
 
@@ -120,7 +120,7 @@ mod unit_test {
         let shape_2 = [1000, 500];
         let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
         let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
-        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        let par_res = par_mat_mul(&lhs.view(), &rhs.view());
         assert_eq!(par_res.shape(), &[shape_1[0], shape_2[1]]);
     }
 }
