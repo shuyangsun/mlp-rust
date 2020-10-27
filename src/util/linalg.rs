@@ -49,3 +49,55 @@ where
     assert_eq!(mat_mul_res.ndim(), 2);
     mat_mul_res
 }
+
+#[cfg(test)]
+mod unit_test {
+    extern crate ndarray;
+
+    use super::{mat_mul, par_mat_mul};
+    use ndarray::prelude::*;
+    use ndarray_rand::rand_distr::Uniform;
+    use ndarray_rand::RandomExt;
+
+    #[test]
+    fn test_mat_mul_1() {
+        let lhs = arr2(&[[1.5, -2.], [1.3, 2.1], [1.1, 0.5]]);
+        let rhs = arr2(&[[1.5, -2., 1., 2.], [1.3, 2.1, 9., -8.2]]);
+        let res = mat_mul(lhs.view(), rhs.view());
+        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        assert_eq!(res.shape(), &[3, 4]);
+        assert_eq!(res, par_res);
+    }
+
+    #[test]
+    fn test_mat_mul_random_1() {
+        let shape_1 = (100, 10);
+        let shape_2 = (10, 5);
+        let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
+        let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
+        let res = mat_mul(lhs.view(), rhs.view());
+        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        assert_eq!(res.shape(), &[shape_1.0, shape_2.1]);
+        assert_eq!(res, par_res);
+    }
+
+    #[test]
+    fn test_mat_mul_random_stress() {
+        let shape_1 = (1000, 1000);
+        let shape_2 = (1000, 500);
+        let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
+        let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
+        let res = mat_mul(lhs.view(), rhs.view());
+        assert_eq!(res.shape(), &[shape_1.0, shape_2.1]);
+    }
+
+    #[test]
+    fn test_par_mat_mul_random_stress() {
+        let shape_1 = (10000, 1000);
+        let shape_2 = (1000, 5000);
+        let lhs = Array2::random(shape_1, Uniform::new(-1., 1.));
+        let rhs = Array2::random(shape_2, Uniform::new(-1., 1.));
+        let par_res = par_mat_mul(lhs.view(), rhs.view());
+        assert_eq!(par_res.shape(), &[shape_1.0, shape_2.1]);
+    }
+}
