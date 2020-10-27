@@ -9,6 +9,10 @@ where
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
     fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T>;
 
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward(input)
+    }
+
     fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         self.backward_batch(output).mean_axis(Axis(0)).unwrap()
     }

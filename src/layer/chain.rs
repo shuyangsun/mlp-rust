@@ -1,6 +1,5 @@
 use crate::custom_types::numerical_traits::MLPFloat;
 use crate::custom_types::tensor_traits::TensorComputable;
-use crate::layer::weight::Weight;
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
@@ -32,30 +31,50 @@ where
     }
 
     pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.forward_helper(input, false)
+        self.forward_helper(input, false, false)
+    }
+
+    pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward_helper(input, false, true)
     }
 
     pub fn output_diff(&self, expected: ArrayViewD<T>, actual: ArrayViewD<T>) -> ArrayD<T> {
         &expected - &actual
     }
 
-    fn forward_helper(&self, input: ArrayViewD<T>, should_cache_layer_outputs: bool) -> ArrayD<T> {
+    fn forward_helper(
+        &self,
+        input: ArrayViewD<T>,
+        should_cache_layer_outputs: bool,
+        is_parallel: bool,
+    ) -> ArrayD<T> {
+        self.layer_outputs.borrow_mut().clear();
         if self.layers.is_empty() {
             panic!("Cannot calculate feed forward propagation with no layer specified.");
         }
-        let first_res = self.layers.first().unwrap().forward(input);
-        self.layer_outputs.borrow_mut().push(first_res);
+        let first_res = if is_parallel {
+            self.layers.first().unwrap().par_forward(input)
+        } else {
+            self.layers.first().unwrap().forward(input)
+        };
+        let mut outputs = self.layer_outputs.borrow_mut();
+        outputs.push(first_res);
         for layer in &self.layers[1..] {
-            let next = layer.forward(self.layer_outputs.borrow().last().unwrap().view());
+            let cur_input = outputs.last().unwrap().view();
+            let next = if is_parallel {
+                layer.par_forward(cur_input)
+            } else {
+                layer.forward(cur_input)
+            };
             if !should_cache_layer_outputs {
-                self.layer_outputs.borrow_mut().clear()
+                outputs.clear();
             }
-            self.layer_outputs.borrow_mut().push(next);
+            outputs.push(next);
         }
         if should_cache_layer_outputs {
-            self.layer_outputs.borrow().last().unwrap().clone()
+            outputs.last().unwrap().clone()
         } else {
-            self.layer_outputs.borrow_mut().pop().unwrap()
+            outputs.pop().unwrap()
         }
     }
 }
@@ -65,11 +84,15 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.forward_helper(input, true)
+        self.forward_helper(input, true, false)
     }
 
     fn backward_batch(&self, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
+    }
+
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward_helper(input, true, true)
     }
 }
 
@@ -101,7 +124,7 @@ mod unit_test {
             Box::new(Bias::new(1)),
             Box::new(Loss::MSE),
         ]);
-        let forward_res = simple_dnn.forward(input_data.view());
+        let forward_res = simple_dnn.predict(input_data.view());
         assert_eq!(forward_res.shape(), &[3usize, 1usize]);
     }
 }

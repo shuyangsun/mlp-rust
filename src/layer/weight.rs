@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
+use super::super::util::linalg;
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
@@ -18,16 +19,23 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        assert_eq!(input.ndim(), 2);
-        let input_2d: ArrayView2<T> = input.into_dimensionality().unwrap();
-        let weight_2d: ArrayView2<T> = self.weight_mat.view().into_dimensionality().unwrap();
-        let mat_mul_res = input_2d.dot(&weight_2d).into_dimensionality().unwrap();
-        assert_eq!(mat_mul_res.ndim(), 2);
-        mat_mul_res
+        linalg::mat_mul(
+            input.into_dimensionality::<Ix2>().unwrap(),
+            self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
+        )
+        .into_dyn()
     }
 
     fn backward_batch(&self, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
+    }
+
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        linalg::par_mat_mul(
+            input.into_dimensionality::<Ix2>().unwrap(),
+            self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
+        )
+        .into_dyn()
     }
 }
 
@@ -81,17 +89,33 @@ mod unit_test {
         let arr = &arr2(&[[1.5, -2.], [1.3, 2.1], [1.1, 0.5]]).into_dyn();
         let weights = Weight::new_random_uniform(2, 5);
         let forward_res = weights.forward(arr.view());
+        let par_forward_res = weights.par_forward(arr.view());
         assert_eq!(forward_res.ndim(), 2usize);
         assert_eq!(forward_res.shape(), &[3usize, 5usize]);
+        assert_eq!(forward_res, par_forward_res);
     }
 
     #[test]
-    fn test_weights_forward_rand() {
-        let shape = [1000, 100];
+    fn test_weights_forward_rand_1() {
+        let shape = [1024, 100];
         let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let weights = Weight::new_random_uniform(100, 50);
         let forward_res = weights.forward(rand_arr.view());
+        let par_forward_res = weights.par_forward(rand_arr.view());
         assert_eq!(forward_res.ndim(), 2usize);
-        assert_eq!(forward_res.shape(), &[1000usize, 50usize]);
+        assert_eq!(forward_res.shape(), &[1024usize, 50usize]);
+        assert_eq!(forward_res, par_forward_res);
+    }
+
+    #[test]
+    fn test_weights_forward_rand_2() {
+        let shape = [997, 100];
+        let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
+        let weights = Weight::new_random_uniform(100, 50);
+        let forward_res = weights.forward(rand_arr.view());
+        let par_forward_res = weights.par_forward(rand_arr.view());
+        assert_eq!(forward_res.ndim(), 2usize);
+        assert_eq!(forward_res.shape(), &[997usize, 50usize]);
+        assert_eq!(forward_res, par_forward_res);
     }
 }

@@ -16,19 +16,27 @@ where
     beta: T,
 }
 
-impl<T> TensorComputable<T> for BatchNormalization<T>
+impl<T> BatchNormalization<T>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn forward_helper(&self, input: ArrayViewD<T>, is_parallel: bool) -> ArrayD<T> {
         let eps = T::from_f32(1e-7f32).unwrap();
         if self.mean.borrow().is_none() {
             let mean: ArrayD<T> = input.mean_axis(Axis(0)).unwrap();
 
             let mut std_stable: ArrayD<T> = (&input - &mean).into_dimensionality().unwrap();
-            std_stable.par_mapv_inplace(|ele| ele.powi(2));
+            if is_parallel {
+                std_stable.par_mapv_inplace(|ele| ele.powi(2));
+            } else {
+                std_stable.mapv_inplace(|ele| ele.powi(2));
+            }
             let mut std_stable = std_stable.mean_axis(Axis(0)).unwrap();
-            std_stable.par_mapv_inplace(|ele| (ele + eps).sqrt());
+            if is_parallel {
+                std_stable.par_mapv_inplace(|ele| (ele + eps).sqrt());
+            } else {
+                std_stable.mapv_inplace(|ele| (ele + eps).sqrt());
+            }
             self.update_mean(mean);
             self.update_std(std_stable);
         };
@@ -36,12 +44,29 @@ where
             / &self.std_stable.borrow().as_ref().unwrap().view();
         let gama_clone = self.gama.clone();
         let beta_clone = self.beta.clone();
-        input_normalized.par_mapv_inplace(|ele| ele * gama_clone + beta_clone);
+        if is_parallel {
+            input_normalized.par_mapv_inplace(|ele| ele * gama_clone + beta_clone);
+        } else {
+            input_normalized.mapv_inplace(|ele| ele * gama_clone + beta_clone);
+        }
         input_normalized
+    }
+}
+
+impl<T> TensorComputable<T> for BatchNormalization<T>
+where
+    T: MLPFloat,
+{
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward_helper(input, false)
     }
 
     fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
+    }
+
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        self.forward_helper(input, true)
     }
 }
 
