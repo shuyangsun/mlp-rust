@@ -101,7 +101,7 @@ where
 #[cfg(test)]
 mod unit_test {
     #[macro_use]
-    use crate::{tensor, tensor_fast};
+    use crate::{tensor, par_tensor};
     extern crate ndarray;
     use super::LayerChain;
     use crate::layer::{
@@ -118,15 +118,15 @@ mod unit_test {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = LayerChain::new_from_sublayers(vec![
-            tensor_fast!(Weight::new_random_uniform(10, 128)),
-            tensor_fast!(Bias::new(128)),
-            tensor_fast!(Activation::TanH),
-            tensor_fast!(Weight::new_random_uniform(128, 64)),
-            tensor_fast!(Activation::TanH),
+            par_tensor!(Weight::new_random_uniform(10, 128)),
+            par_tensor!(Bias::new(128)),
+            par_tensor!(Activation::TanH),
+            par_tensor!(Weight::new_random_uniform(128, 64)),
+            par_tensor!(Activation::TanH),
             tensor!(BatchNormalization::new(64)),
-            tensor_fast!(Weight::new_random_uniform(64, 1)),
-            tensor_fast!(Bias::new(1)),
-            tensor_fast!(Loss::MSE),
+            par_tensor!(Weight::new_random_uniform(64, 1)),
+            par_tensor!(Bias::new(1)),
+            par_tensor!(Loss::MSE),
         ]);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());

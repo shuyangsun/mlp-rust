@@ -66,7 +66,7 @@ macro_rules! tensor {
 }
 
 #[macro_export]
-macro_rules! tensor_fast {
+macro_rules! par_tensor {
     ($x:expr) => {{
         TensorTraitObjWrapper::SampleIndependent(Box::new($x))
     }};
