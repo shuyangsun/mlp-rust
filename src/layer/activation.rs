@@ -1,6 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::{TensorComputable, TensorForwardBatchIndependent};
+use super::super::traits::numerical_traits::MLPFloat;
+use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
 use ndarray::prelude::*;
 
 pub enum Activation {
@@ -35,7 +35,7 @@ impl Activation {
     }
 }
 
-impl<T> TensorComputable<T> for Activation
+impl<T> Tensor<T> for Activation
 where
     T: MLPFloat,
 {
@@ -75,12 +75,12 @@ where
     }
 }
 
-impl<T> TensorForwardBatchIndependent<T> for Activation where T: MLPFloat {}
+impl<T> TensorSampleIndependent<T> for Activation where T: MLPFloat {}
 
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;
-    use super::super::super::custom_types::tensor_traits::TensorComputable;
+    use super::super::super::traits::tensor_traits::Tensor;
     use super::Activation;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;

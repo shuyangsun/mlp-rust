@@ -1,6 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
+use super::super::traits::numerical_traits::MLPFloat;
+use super::super::traits::tensor_traits::Tensor;
 use ndarray::prelude::*;
 use std::cell::RefCell;
 
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<T> TensorComputable<T> for BatchNormalization<T>
+impl<T> Tensor<T> for BatchNormalization<T>
 where
     T: MLPFloat,
 {
@@ -65,21 +65,16 @@ where
         unimplemented!()
     }
 
+    fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
+        unimplemented!()
+    }
+
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, true)
     }
-}
 
-impl<T> TensorUpdatable<T> for BatchNormalization<T>
-where
-    T: MLPFloat,
-{
     fn is_frozen(&self) -> bool {
         self.is_frozen
-    }
-
-    fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
-        unimplemented!()
     }
 }
 
@@ -118,7 +113,7 @@ where
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;
-    use super::super::super::custom_types::tensor_traits::TensorComputable;
+    use super::super::super::traits::tensor_traits::Tensor;
     use super::BatchNormalization;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;

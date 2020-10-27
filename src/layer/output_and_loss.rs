@@ -1,6 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::{TensorComputable, TensorForwardBatchIndependent};
+use super::super::traits::numerical_traits::MLPFloat;
+use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
@@ -10,7 +10,7 @@ pub enum Loss {
     SoftmaxCrossEntropy,
 }
 
-impl<T> TensorComputable<T> for Loss
+impl<T> Tensor<T> for Loss
 where
     T: MLPFloat,
 {
@@ -43,4 +43,4 @@ where
     }
 }
 
-impl<T> TensorForwardBatchIndependent<T> for Loss where T: MLPFloat {}
+impl<T> TensorSampleIndependent<T> for Loss where T: MLPFloat {}

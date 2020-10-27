@@ -1,5 +1,5 @@
-use crate::custom_types::numerical_traits::MLPFloat;
-use crate::custom_types::tensor_traits::TensorComputable;
+use crate::traits::numerical_traits::MLPFloat;
+use crate::traits::tensor_traits::Tensor;
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
@@ -8,7 +8,7 @@ where
     T: MLPFloat,
 {
     is_frozen: bool,
-    layers: Vec<Box<dyn TensorComputable<T>>>,
+    layers: Vec<Box<dyn Tensor<T>>>,
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
 
@@ -20,7 +20,7 @@ where
         Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_sublayers(layers: Vec<Box<dyn TensorComputable<T>>>) -> Self {
+    pub fn new_from_sublayers(layers: Vec<Box<dyn Tensor<T>>>) -> Self {
         Self {
             is_frozen: false,
             layers,
@@ -28,7 +28,7 @@ where
         }
     }
 
-    pub fn push(&mut self, layer: Box<dyn TensorComputable<T>>) {
+    pub fn push(&mut self, layer: Box<dyn Tensor<T>>) {
         self.layers.push(layer)
     }
 
@@ -81,7 +81,7 @@ where
     }
 }
 
-impl<T> TensorComputable<T> for LayerChain<T>
+impl<T> Tensor<T> for LayerChain<T>
 where
     T: MLPFloat,
 {
@@ -102,11 +102,11 @@ where
 mod unit_test {
     extern crate ndarray;
     use super::LayerChain;
-    use crate::custom_types::tensor_traits::TensorComputable;
     use crate::layer::{
         activation::Activation, bias::Bias, normalization::BatchNormalization,
         output_and_loss::Loss, weight::Weight,
     };
+    use crate::traits::tensor_traits::Tensor;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;

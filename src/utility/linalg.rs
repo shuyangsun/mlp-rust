@@ -5,7 +5,7 @@ use ndarray::{stack, Slice};
 use rayon::prelude::*;
 
 use self::ndarray::RemoveAxis;
-use super::super::custom_types::numerical_traits::MLPFloat;
+use super::super::traits::numerical_traits::MLPFloat;
 
 pub fn mat_mul<T>(lhs: &ArrayView2<T>, rhs: &ArrayView2<T>) -> Array2<T>
 where

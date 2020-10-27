@@ -1,8 +1,6 @@
 extern crate ndarray;
-use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::custom_types::tensor_traits::{
-    TensorComputable, TensorForwardBatchIndependent, TensorUpdatable,
-};
+use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
+use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
 use ndarray::prelude::*;
 
 pub struct Bias<T>
@@ -13,7 +11,7 @@ where
     bias_arr: ArrayD<T>, // 2D array with shape 1 x N, N = number of neurons
 }
 
-impl<T> TensorComputable<T> for Bias<T>
+impl<T> Tensor<T> for Bias<T>
 where
     T: MLPFloat,
 {
@@ -24,21 +22,17 @@ where
     fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
-}
 
-impl<T> TensorForwardBatchIndependent<T> for Bias<T> where T: MLPFloat {}
-
-impl<T> TensorUpdatable<T> for Bias<T>
-where
-    T: MLPFloat,
-{
-    fn is_frozen(&self) -> bool {
-        self.is_frozen
-    }
     fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
         self.bias_arr.view_mut()
     }
+
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
 }
+
+impl<T> TensorSampleIndependent<T> for Bias<T> where T: MLPFloat {}
 
 impl<T> Bias<T>
 where
@@ -62,7 +56,7 @@ where
 mod unit_test {
     extern crate ndarray;
 
-    use super::super::super::custom_types::tensor_traits::TensorComputable;
+    use super::super::super::traits::tensor_traits::Tensor;
     use super::Bias;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;

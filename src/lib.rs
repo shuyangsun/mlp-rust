@@ -1,3 +1,3 @@
-mod custom_types;
 mod layer;
-mod util;
+mod traits;
+mod utility;

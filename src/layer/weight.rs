@@ -1,9 +1,7 @@
 extern crate ndarray;
-use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::custom_types::tensor_traits::{
-    TensorComputable, TensorForwardBatchIndependent, TensorUpdatable,
-};
-use super::super::util::linalg;
+use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
+use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
+use super::super::utility::linalg;
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
@@ -16,7 +14,7 @@ where
     weight_mat: ArrayD<T>, // n1 x n2
 }
 
-impl<T> TensorComputable<T> for Weight<T>
+impl<T> Tensor<T> for Weight<T>
 where
     T: MLPFloat,
 {
@@ -32,6 +30,10 @@ where
         unimplemented!()
     }
 
+    fn updatable_mat(&mut self) -> ArrayViewMutD<T> {
+        self.weight_mat.view_mut()
+    }
+
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         linalg::par_mat_mul(
             &input.into_dimensionality::<Ix2>().unwrap(),
@@ -39,22 +41,13 @@ where
         )
         .into_dyn()
     }
-}
 
-impl<T> TensorForwardBatchIndependent<T> for Weight<T> where T: MLPFloat {}
-
-impl<T> TensorUpdatable<T> for Weight<T>
-where
-    T: MLPFloat,
-{
     fn is_frozen(&self) -> bool {
         self.is_frozen
     }
-
-    fn updatable_mat(&mut self) -> ArrayViewMutD<T> {
-        self.weight_mat.view_mut()
-    }
 }
+
+impl<T> TensorSampleIndependent<T> for Weight<T> where T: MLPFloat {}
 
 impl<T> Weight<T>
 where
@@ -82,7 +75,7 @@ where
 mod unit_test {
     extern crate ndarray;
 
-    use super::super::super::custom_types::tensor_traits::TensorComputable;
+    use super::super::super::traits::tensor_traits::Tensor;
     use super::Weight;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
