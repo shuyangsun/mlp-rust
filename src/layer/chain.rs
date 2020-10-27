@@ -124,7 +124,9 @@ mod unit_test {
             Box::new(Bias::new(1)),
             Box::new(Loss::MSE),
         ]);
-        let forward_res = simple_dnn.predict(input_data.view());
-        assert_eq!(forward_res.shape(), &[3usize, 1usize]);
+        let prediction = simple_dnn.predict(input_data.view());
+        let par_prediction = simple_dnn.par_predict(input_data.view());
+        assert_eq!(prediction.shape(), &[3usize, 1usize]);
+        assert_eq!(prediction, par_prediction);
     }
 }

@@ -46,13 +46,6 @@ where
         self.forward_helper(input, false)
     }
 
-    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T>
-    where
-        T: MLPFloat,
-    {
-        self.forward_helper(input, true)
-    }
-
     fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T>
     where
         T: MLPFloat,
@@ -72,6 +65,13 @@ where
             }),
         };
         res
+    }
+
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T>
+    where
+        T: MLPFloat,
+    {
+        self.forward_helper(input, true)
     }
 }
 
