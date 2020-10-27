@@ -1,6 +1,6 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::TensorComputable;
+use super::super::custom_types::tensor_traits::{TensorComputable, TensorForwardBatchIndependent};
 use ndarray::prelude::*;
 
 pub enum Activation {
@@ -74,6 +74,8 @@ where
         self.forward_helper(input, true)
     }
 }
+
+impl<T> TensorForwardBatchIndependent<T> for Activation where T: MLPFloat {}
 
 #[cfg(test)]
 mod unit_test {

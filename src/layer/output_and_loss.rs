@@ -1,6 +1,6 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::MLPFloat;
-use super::super::custom_types::tensor_traits::TensorComputable;
+use super::super::custom_types::tensor_traits::{TensorComputable, TensorForwardBatchIndependent};
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
@@ -42,3 +42,5 @@ where
         Array::ones(shape_after_diff_mean)
     }
 }
+
+impl<T> TensorForwardBatchIndependent<T> for Loss where T: MLPFloat {}

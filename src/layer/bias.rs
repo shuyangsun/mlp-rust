@@ -1,6 +1,8 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
+use super::super::custom_types::tensor_traits::{
+    TensorComputable, TensorForwardBatchIndependent, TensorUpdatable,
+};
 use ndarray::prelude::*;
 
 pub struct Bias<T>
@@ -23,6 +25,8 @@ where
         unimplemented!()
     }
 }
+
+impl<T> TensorForwardBatchIndependent<T> for Bias<T> where T: MLPFloat {}
 
 impl<T> TensorUpdatable<T> for Bias<T>
 where

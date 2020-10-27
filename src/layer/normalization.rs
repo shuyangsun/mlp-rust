@@ -74,6 +74,10 @@ impl<T> TensorUpdatable<T> for BatchNormalization<T>
 where
     T: MLPFloat,
 {
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
+
     fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
         unimplemented!()
     }

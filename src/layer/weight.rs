@@ -1,6 +1,8 @@
 extern crate ndarray;
 use super::super::custom_types::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::custom_types::tensor_traits::{TensorComputable, TensorUpdatable};
+use super::super::custom_types::tensor_traits::{
+    TensorComputable, TensorForwardBatchIndependent, TensorUpdatable,
+};
 use super::super::util::linalg;
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
@@ -38,6 +40,8 @@ where
         .into_dyn()
     }
 }
+
+impl<T> TensorForwardBatchIndependent<T> for Weight<T> where T: MLPFloat {}
 
 impl<T> TensorUpdatable<T> for Weight<T>
 where

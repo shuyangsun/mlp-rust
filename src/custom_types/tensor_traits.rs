@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::numerical_traits::MLPFloat;
 use ndarray::prelude::*;
+use rayon::prelude::*;
 
 pub trait TensorComputable<T>
 where
@@ -15,6 +16,19 @@ where
 
     fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         self.backward_batch(output).mean_axis(Axis(0)).unwrap()
+    }
+}
+
+pub trait TensorForwardBatchIndependent<T>: TensorComputable<T>
+where
+    T: MLPFloat,
+    Self: Sync,
+{
+    fn par_batch_forward(&self, inputs: &Vec<ArrayViewD<T>>) -> Vec<ArrayD<T>> {
+        inputs
+            .par_iter()
+            .map(|input: &ArrayViewD<T>| self.forward(input.clone()))
+            .collect()
     }
 }
 

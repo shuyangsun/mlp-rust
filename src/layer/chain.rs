@@ -7,6 +7,7 @@ pub struct LayerChain<T>
 where
     T: MLPFloat,
 {
+    is_frozen: bool,
     layers: Vec<Box<dyn TensorComputable<T>>>,
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
@@ -21,6 +22,7 @@ where
 
     pub fn new_from_sublayers(layers: Vec<Box<dyn TensorComputable<T>>>) -> Self {
         Self {
+            is_frozen: false,
             layers,
             layer_outputs: RefCell::new(Vec::new()),
         }
