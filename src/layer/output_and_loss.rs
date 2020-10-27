@@ -16,20 +16,22 @@ where
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         assert_eq!(input.ndim(), 2);
+        let input = input.into_dimensionality::<Ix2>().unwrap();
         let res: ArrayD<T> = match self {
-            Self::MSE => input.clone().into_owned(),
+            Self::MSE => input.into_owned().into_dyn(),
             Self::SoftmaxCrossEntropy => {
                 // Subtract max value in the row from the original values, to make it numerically more stable.
-                let row_max = input
-                    .map_axis(Axis(1), |row: ArrayView1<T>| row.max().unwrap().clone())
-                    .into_dimensionality::<Ix2>()
-                    .unwrap();
+                let row_max =
+                    input.map_axis(Axis(1), |row: ArrayView1<T>| row.max().unwrap().clone());
                 let num_samples = row_max.len();
                 let row_max = row_max.into_shape((num_samples, 1)).unwrap();
                 let shifted = &input - &row_max;
                 let exp = shifted.mapv(|ele| T::one().exp().powf(ele));
-                let axis_sum = exp.sum_axis(Axis(1));
-                exp / axis_sum
+                let axis_sum = exp
+                    .sum_axis(Axis(1))
+                    .into_shape([exp.shape()[0], 1])
+                    .unwrap();
+                (exp / axis_sum).into_dyn()
             }
         };
         assert_eq!(res.shape(), input.shape());

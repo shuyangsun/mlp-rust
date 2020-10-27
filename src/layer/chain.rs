@@ -196,8 +196,28 @@ mod unit_test {
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
 
+    fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> LayerChain<f32> {
+        LayerChain::new_from_sublayers(vec![
+            par_tensor!(Weight::new_random_uniform(input_size, 4096)),
+            par_tensor!(Bias::new(4096)),
+            par_tensor!(Activation::LeakyReLu),
+            par_tensor!(Weight::new_random_uniform(4096, 2048)),
+            par_tensor!(Bias::new(2048)),
+            par_tensor!(Activation::ReLu),
+            par_tensor!(Weight::new_random_uniform(2048, 1024)),
+            par_tensor!(Bias::new(1024)),
+            par_tensor!(Activation::TanH),
+            par_tensor!(Weight::new_random_uniform(1024, 500)),
+            par_tensor!(Bias::new(500)),
+            par_tensor!(Activation::ReLu),
+            par_tensor!(Weight::new_random_uniform(500, output_size)),
+            par_tensor!(Bias::new(output_size)),
+            par_tensor!(Loss::SoftmaxCrossEntropy),
+        ])
+    }
+
     #[test]
-    fn test_propagation_manager_forward() {
+    fn test_chained_forward() {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = LayerChain::new_from_sublayers(vec![
@@ -215,5 +235,25 @@ mod unit_test {
         let par_prediction = simple_dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[3usize, 1usize]);
         assert_eq!(prediction, par_prediction);
+    }
+
+    #[test]
+    fn test_chained_predict_stress() {
+        let shape = &[3usize, 1024];
+        let output_size = 10;
+        let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
+        let dnn = generate_stress_dnn_classifier(shape[1], output_size);
+        let prediction = dnn.predict(input_data.view());
+        assert_eq!(prediction.shape(), &[shape[0], output_size]);
+    }
+
+    #[test]
+    fn test_chained_par_predict_stress() {
+        let shape = &[3usize, 1024];
+        let output_size = 10;
+        let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
+        let dnn = generate_stress_dnn_classifier(shape[1], output_size);
+        let prediction = dnn.par_predict(input_data.view());
+        assert_eq!(prediction.shape(), &[shape[0], output_size]);
     }
 }
