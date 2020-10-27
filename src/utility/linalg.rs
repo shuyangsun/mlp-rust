@@ -40,7 +40,7 @@ where
     stack_arr_views(&par_res.iter().map(|ele| ele.view()).collect())
 }
 
-fn split_arr_view_into_chunks_by_axis0<'a, T, D>(
+pub fn split_arr_view_into_chunks_by_axis0<'a, T, D>(
     arr: &'a ArrayView<T, D>,
     num_chunks: usize,
 ) -> Vec<ArrayView<'a, T, D>>
@@ -65,7 +65,7 @@ where
     res
 }
 
-fn stack_arr_views<T, D>(arr_vec: &Vec<ArrayView<T, D>>) -> Array<T, D>
+pub fn stack_arr_views<T, D>(arr_vec: &Vec<ArrayView<T, D>>) -> Array<T, D>
 where
     T: Copy,
     D: Dimension + RemoveAxis,

@@ -1,7 +1,15 @@
 use crate::traits::numerical_traits::MLPFloat;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
+use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::{ArrayD, ArrayViewD};
+use num_cpus;
 use std::cell::RefCell;
+
+#[derive(Clone)]
+enum LayerOutput<T> {
+    Basic(ArrayD<T>),
+    SampleIndependent(Vec<ArrayD<T>>),
+}
 
 pub struct LayerChain<T>
 where
@@ -9,7 +17,7 @@ where
 {
     is_frozen: bool,
     layers: Vec<TensorTraitObjWrapper<T>>,
-    layer_outputs: RefCell<Vec<ArrayD<T>>>,
+    layer_outputs: RefCell<Vec<LayerOutput<T>>>,
 }
 
 impl<T> LayerChain<T>
@@ -54,29 +62,45 @@ where
         if self.layers.is_empty() {
             panic!("Cannot calculate feed forward propagation with no layer specified.");
         }
-        let first_res = if is_parallel {
-            self.layers.first().unwrap().par_forward(input)
-        } else {
-            self.layers.first().unwrap().forward(input)
+        let first_res = match self.layers.first().unwrap() {
+            TensorTraitObjWrapper::Basic(layer) => {
+                if is_parallel {
+                    LayerOutput::Basic(layer.par_forward(input))
+                } else {
+                    LayerOutput::Basic(layer.forward(input))
+                }
+            }
+            TensorTraitObjWrapper::SampleIndependent(layer) => {
+                if is_parallel {
+                    let thread_count = num_cpus::get();
+                    let view_sliced = split_arr_view_into_chunks_by_axis0(&input, thread_count);
+                    LayerOutput::SampleIndependent(layer.par_batch_forward(&view_sliced))
+                } else {
+                    LayerOutput::Basic(layer.forward(input))
+                }
+            }
         };
         let mut outputs = self.layer_outputs.borrow_mut();
         outputs.push(first_res);
         for layer in &self.layers[1..] {
-            let cur_input = outputs.last().unwrap().view();
-            let next = if is_parallel {
-                layer.par_forward(cur_input)
-            } else {
-                layer.forward(cur_input)
-            };
+            let cur_input = outputs.last().unwrap();
+            let next = layer_forward_helper(layer, cur_input, is_parallel);
             if !should_cache_layer_outputs {
                 outputs.clear();
             }
             outputs.push(next);
         }
-        if should_cache_layer_outputs {
+        let last_output: LayerOutput<T> = if should_cache_layer_outputs {
             outputs.last().unwrap().clone()
         } else {
             outputs.pop().unwrap()
+        };
+        match last_output {
+            LayerOutput::Basic(arr) => arr,
+            LayerOutput::SampleIndependent(arr_vec) => {
+                let arr_view: Vec<ArrayViewD<T>> = arr_vec.iter().map(|ele| ele.view()).collect();
+                stack_arr_views(&arr_view)
+            }
         }
     }
 }
@@ -95,6 +119,65 @@ where
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, true, true)
+    }
+}
+
+fn layer_forward_helper<T>(
+    layer: &TensorTraitObjWrapper<T>,
+    input: &LayerOutput<T>,
+    is_parallel: bool,
+) -> LayerOutput<T>
+where
+    T: MLPFloat,
+{
+    if is_parallel {
+        match layer {
+            TensorTraitObjWrapper::Basic(layer) => match input {
+                LayerOutput::Basic(input_arr) => {
+                    LayerOutput::Basic(layer.par_forward(input_arr.view()))
+                }
+                LayerOutput::SampleIndependent(input_vec) => {
+                    let input_view: Vec<ArrayViewD<T>> =
+                        input_vec.iter().map(|ele| ele.view()).collect();
+                    let stacked = stack_arr_views(&input_view);
+                    LayerOutput::Basic(layer.par_forward(stacked.view()))
+                }
+            },
+            TensorTraitObjWrapper::SampleIndependent(layer) => match input {
+                LayerOutput::Basic(input_arr) => {
+                    let thread_count = num_cpus::get();
+                    let input_view = input_arr.view();
+                    let view_sliced =
+                        split_arr_view_into_chunks_by_axis0(&input_view, thread_count);
+                    LayerOutput::SampleIndependent(layer.par_batch_forward(&view_sliced))
+                }
+                LayerOutput::SampleIndependent(input_vec) => {
+                    let input_view: Vec<ArrayViewD<T>> =
+                        input_vec.iter().map(|ele| ele.view()).collect();
+                    LayerOutput::SampleIndependent(layer.par_batch_forward(&input_view))
+                }
+            },
+        }
+    } else {
+        match input {
+            LayerOutput::Basic(input_arr) => LayerOutput::Basic(match layer {
+                TensorTraitObjWrapper::Basic(tensor) => tensor.forward(input_arr.view()),
+                TensorTraitObjWrapper::SampleIndependent(tensor) => {
+                    tensor.forward(input_arr.view())
+                }
+            }),
+            LayerOutput::SampleIndependent(input_vec) => {
+                let input_view: Vec<ArrayViewD<T>> =
+                    input_vec.iter().map(|ele| ele.view()).collect();
+                let stacked = stack_arr_views(&input_view);
+                LayerOutput::Basic(match layer {
+                    TensorTraitObjWrapper::Basic(tensor) => tensor.forward(stacked.view()),
+                    TensorTraitObjWrapper::SampleIndependent(tensor) => {
+                        tensor.forward(stacked.view())
+                    }
+                })
+            }
+        }
     }
 }
 
