@@ -239,7 +239,7 @@ mod unit_test {
 
     #[test]
     fn test_chained_predict_stress() {
-        let shape = &[3usize, 1024];
+        let shape = &[100usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_dnn_classifier(shape[1], output_size);
@@ -249,7 +249,7 @@ mod unit_test {
 
     #[test]
     fn test_chained_par_predict_stress() {
-        let shape = &[3usize, 1024];
+        let shape = &[100usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_dnn_classifier(shape[1], output_size);
