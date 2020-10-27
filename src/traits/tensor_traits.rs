@@ -49,3 +49,25 @@ where
             .collect()
     }
 }
+
+pub enum TensorTraitObjWrapper<T>
+where
+    T: MLPFloat,
+{
+    Basic(Box<dyn Tensor<T>>),
+    SampleIndependent(Box<dyn TensorSampleIndependent<T>>),
+}
+
+#[macro_export]
+macro_rules! tensor {
+    ($x:expr) => {{
+        TensorTraitObjWrapper::Basic(Box::new($x))
+    }};
+}
+
+#[macro_export]
+macro_rules! tensor_fast {
+    ($x:expr) => {{
+        TensorTraitObjWrapper::SampleIndependent(Box::new($x))
+    }};
+}

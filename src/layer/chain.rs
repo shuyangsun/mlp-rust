@@ -1,5 +1,5 @@
 use crate::traits::numerical_traits::MLPFloat;
-use crate::traits::tensor_traits::Tensor;
+use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
@@ -8,7 +8,7 @@ where
     T: MLPFloat,
 {
     is_frozen: bool,
-    layers: Vec<Box<dyn Tensor<T>>>,
+    layers: Vec<TensorTraitObjWrapper<T>>,
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
 
@@ -20,7 +20,7 @@ where
         Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_sublayers(layers: Vec<Box<dyn Tensor<T>>>) -> Self {
+    pub fn new_from_sublayers(layers: Vec<TensorTraitObjWrapper<T>>) -> Self {
         Self {
             is_frozen: false,
             layers,
@@ -28,7 +28,7 @@ where
         }
     }
 
-    pub fn push(&mut self, layer: Box<dyn Tensor<T>>) {
+    pub fn push(&mut self, layer: TensorTraitObjWrapper<T>) {
         self.layers.push(layer)
     }
 
@@ -100,13 +100,15 @@ where
 
 #[cfg(test)]
 mod unit_test {
+    #[macro_use]
+    use crate::{tensor, tensor_fast};
     extern crate ndarray;
     use super::LayerChain;
     use crate::layer::{
         activation::Activation, bias::Bias, normalization::BatchNormalization,
         output_and_loss::Loss, weight::Weight,
     };
-    use crate::traits::tensor_traits::Tensor;
+    use crate::traits::tensor_traits::TensorTraitObjWrapper;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -116,15 +118,15 @@ mod unit_test {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = LayerChain::new_from_sublayers(vec![
-            Box::new(Weight::new_random_uniform(10, 128)),
-            Box::new(Bias::new(128)),
-            Box::new(Activation::TanH),
-            Box::new(Weight::new_random_uniform(128, 64)),
-            Box::new(Activation::TanH),
-            Box::new(BatchNormalization::new(64)),
-            Box::new(Weight::new_random_uniform(64, 1)),
-            Box::new(Bias::new(1)),
-            Box::new(Loss::MSE),
+            tensor_fast!(Weight::new_random_uniform(10, 128)),
+            tensor_fast!(Bias::new(128)),
+            tensor_fast!(Activation::TanH),
+            tensor_fast!(Weight::new_random_uniform(128, 64)),
+            tensor_fast!(Activation::TanH),
+            tensor!(BatchNormalization::new(64)),
+            tensor_fast!(Weight::new_random_uniform(64, 1)),
+            tensor_fast!(Bias::new(1)),
+            tensor_fast!(Loss::MSE),
         ]);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
