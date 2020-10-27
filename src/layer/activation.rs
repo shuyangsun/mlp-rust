@@ -15,7 +15,7 @@ impl Activation {
         T: MLPFloat,
     {
         let mut res: ArrayD<T> = input.into_owned();
-        let closure_fn = match self {
+        let closure_fn: fn(T) -> T = match self {
             Self::TanH => |ele: T| ele.sinh().div(ele.cosh()),
             Self::ReLu => |ele: T| ele.max(T::zero()),
             Self::LeakyReLu => |ele: T| {
