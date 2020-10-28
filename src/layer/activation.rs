@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
+use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 
 pub enum Activation {
@@ -74,8 +75,16 @@ where
         self.forward_helper(input, true)
     }
 
-    fn num_param(&self) -> Option<usize> {
-        Some(0)
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(0)
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(match self {
+            Self::TanH => 2,
+            Self::ReLu => 1,
+            Self::LeakyReLu => 1,
+        })
     }
 }
 

@@ -1,5 +1,6 @@
 use crate::traits::numerical_traits::MLPFloat;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
+use crate::utility::counter::CounterEst;
 use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::{ArrayD, ArrayViewD};
 use num_cpus;
@@ -121,19 +122,28 @@ where
         self.forward_helper(input, true, true)
     }
 
-    fn num_param(&self) -> Option<usize> {
-        let mut res = 0usize;
+    fn num_parameters(&self) -> CounterEst<usize> {
+        let mut res = CounterEst::Accurate(0);
         for layer in &self.layers {
-            let cur_num_param = match layer {
-                TensorTraitObjWrapper::Basic(tensor) => tensor.num_param(),
-                TensorTraitObjWrapper::SampleIndependent(tensor) => tensor.num_param(),
+            res += match layer {
+                TensorTraitObjWrapper::Basic(tensor) => tensor.num_parameters(),
+                TensorTraitObjWrapper::SampleIndependent(tensor) => tensor.num_parameters(),
             };
-            if cur_num_param.is_none() {
-                return None;
-            }
-            res += cur_num_param.unwrap();
         }
-        Some(res)
+        res
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        let mut res = CounterEst::Accurate(0);
+        for layer in &self.layers {
+            res += match layer {
+                TensorTraitObjWrapper::Basic(tensor) => tensor.num_operations_per_forward(),
+                TensorTraitObjWrapper::SampleIndependent(tensor) => {
+                    tensor.num_operations_per_forward()
+                }
+            };
+        }
+        res
     }
 }
 
@@ -264,11 +274,10 @@ mod unit_test {
 
     #[test]
     fn test_chained_par_predict_stress() {
-        let shape = &[100usize, 1024];
+        let shape = &[1000usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_dnn_classifier(shape[1], output_size);
-        println!("Num param: {:#?}", dnn.num_param());
         let prediction = dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[shape[0], output_size]);
     }

@@ -1,5 +1,6 @@
 extern crate ndarray;
 use super::numerical_traits::MLPFloat;
+use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 use rayon::prelude::*;
 
@@ -36,8 +37,12 @@ where
         original_mat.assign(&update_res);
     }
 
-    fn num_param(&self) -> Option<usize> {
-        None
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::None
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::None
     }
 }
 

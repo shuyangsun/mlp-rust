@@ -1,6 +1,7 @@
 use crate::layer::chain::LayerChain;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
 use crate::traits::tensor_traits::Tensor;
+use crate::utility::counter::CounterEst;
 use ndarray::{Array1, ArrayView2, Ix2};
 
 pub struct MLPClassifier<T>
@@ -22,8 +23,12 @@ where
         unimplemented!()
     }
 
-    pub fn num_param(&self) -> Option<usize> {
-        self.layer_chain.num_param()
+    pub fn num_param(&self) -> CounterEst<usize> {
+        self.layer_chain.num_parameters()
+    }
+
+    pub fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        self.layer_chain.num_operations_per_forward()
     }
 
     pub fn predict(&self, input: ArrayView2<T>) -> Array1<T> {

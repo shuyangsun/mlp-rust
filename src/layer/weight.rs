@@ -2,6 +2,7 @@ extern crate ndarray;
 use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
 use super::super::utility::linalg;
+use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
@@ -46,8 +47,12 @@ where
         self.is_frozen
     }
 
-    fn num_param(&self) -> Option<usize> {
-        Some(self.weight_mat.len())
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(self.weight_mat.len())
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(self.weight_mat.len() * 2 - self.weight_mat.shape()[0])
     }
 }
 

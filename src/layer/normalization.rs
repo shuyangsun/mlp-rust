@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::Tensor;
+use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 use std::cell::RefCell;
 
@@ -77,8 +78,12 @@ where
         self.is_frozen
     }
 
-    fn num_param(&self) -> Option<usize> {
-        Some((self.size + 1) * 2)
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate((self.size + 1) * 2)
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(self.size * 2)
     }
 }
 

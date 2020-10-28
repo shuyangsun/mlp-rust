@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
+use crate::utility::counter::CounterEst;
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
@@ -44,8 +45,15 @@ where
         Array::ones(shape_after_diff_mean)
     }
 
-    fn num_param(&self) -> Option<usize> {
-        Some(0)
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(0)
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        match self {
+            Self::MSE => CounterEst::Accurate(0),
+            Self::SoftmaxCrossEntropy => CounterEst::None, // Cannot determine because it depends on the size of last layers
+        }
     }
 }
 
