@@ -73,6 +73,10 @@ where
     {
         self.forward_helper(input, true)
     }
+
+    fn num_param(&self) -> Option<usize> {
+        Some(0)
+    }
 }
 
 impl<T> TensorSampleIndependent<T> for Activation where T: MLPFloat {}

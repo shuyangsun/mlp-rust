@@ -35,6 +35,10 @@ where
         assert_eq!(update_res.shape(), original_mat.shape());
         original_mat.assign(&update_res);
     }
+
+    fn num_param(&self) -> Option<usize> {
+        None
+    }
 }
 
 pub trait TensorSampleIndependent<T>: Tensor<T>

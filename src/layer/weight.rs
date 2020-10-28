@@ -45,6 +45,10 @@ where
     fn is_frozen(&self) -> bool {
         self.is_frozen
     }
+
+    fn num_param(&self) -> Option<usize> {
+        Some(self.weight_mat.len())
+    }
 }
 
 impl<T> TensorSampleIndependent<T> for Weight<T> where T: MLPFloat {}

@@ -120,6 +120,21 @@ where
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, true, true)
     }
+
+    fn num_param(&self) -> Option<usize> {
+        let mut res = 0usize;
+        for layer in &self.layers {
+            let cur_num_param = match layer {
+                TensorTraitObjWrapper::Basic(tensor) => tensor.num_param(),
+                TensorTraitObjWrapper::SampleIndependent(tensor) => tensor.num_param(),
+            };
+            if cur_num_param.is_none() {
+                return None;
+            }
+            res += cur_num_param.unwrap();
+        }
+        Some(res)
+    }
 }
 
 fn layer_forward_helper<T>(
@@ -191,7 +206,7 @@ mod unit_test {
         activation::Activation, bias::Bias, normalization::BatchNormalization,
         output_and_loss::Loss, weight::Weight,
     };
-    use crate::traits::tensor_traits::TensorTraitObjWrapper;
+    use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -253,6 +268,7 @@ mod unit_test {
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_dnn_classifier(shape[1], output_size);
+        println!("Num param: {:#?}", dnn.num_param());
         let prediction = dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[shape[0], output_size]);
     }

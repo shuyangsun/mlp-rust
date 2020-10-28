@@ -30,6 +30,10 @@ where
     fn is_frozen(&self) -> bool {
         self.is_frozen
     }
+
+    fn num_param(&self) -> Option<usize> {
+        Some(self.bias_arr.len())
+    }
 }
 
 impl<T> TensorSampleIndependent<T> for Bias<T> where T: MLPFloat {}

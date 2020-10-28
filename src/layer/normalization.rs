@@ -76,6 +76,10 @@ where
     fn is_frozen(&self) -> bool {
         self.is_frozen
     }
+
+    fn num_param(&self) -> Option<usize> {
+        Some((self.size + 1) * 2)
+    }
 }
 
 impl<T> BatchNormalization<T>

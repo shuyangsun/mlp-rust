@@ -43,6 +43,10 @@ where
         let shape_after_diff_mean = &output_shape[1..];
         Array::ones(shape_after_diff_mean)
     }
+
+    fn num_param(&self) -> Option<usize> {
+        Some(0)
+    }
 }
 
 impl<T> TensorSampleIndependent<T> for Loss where T: MLPFloat {}

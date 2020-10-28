@@ -1,12 +1,13 @@
 use crate::layer::chain::LayerChain;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
+use crate::traits::tensor_traits::Tensor;
 use ndarray::{Array1, ArrayView2, Ix2};
 
 pub struct MLPClassifier<T>
 where
     T: MLPFLoatRandSampling,
 {
-    layers: LayerChain<T>,
+    layer_chain: LayerChain<T>,
 }
 
 impl<T> MLPClassifier<T>
@@ -21,8 +22,12 @@ where
         unimplemented!()
     }
 
+    pub fn num_param(&self) -> Option<usize> {
+        self.layer_chain.num_param()
+    }
+
     pub fn predict(&self, input: ArrayView2<T>) -> Array1<T> {
-        self.layers
+        self.layer_chain
             .predict(input.into_dyn())
             .into_dimensionality::<Ix2>()
             .unwrap()
@@ -31,7 +36,7 @@ where
     }
 
     pub fn par_predict(&self, input: ArrayView2<T>) -> Array1<T> {
-        self.layers
+        self.layer_chain
             .par_predict(input.into_dyn())
             .into_dimensionality::<Ix2>()
             .unwrap()
