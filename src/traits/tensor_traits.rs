@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::numerical_traits::MLPFloat;
 use crate::utility::counter::CounterEst;
+use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::prelude::*;
 use rayon::prelude::*;
 
@@ -50,7 +51,17 @@ pub trait TensorSampleIndependent<T>: Tensor<T>
 where
     T: MLPFloat,
 {
-    fn par_batch_forward(&self, inputs: &Vec<ArrayViewD<T>>) -> Vec<ArrayD<T>>;
+    fn par_batch_forward(&self, inputs: &Vec<ArrayViewD<T>>) -> Vec<ArrayD<T>> {
+        let stacked = stack_arr_views(inputs);
+        let stacked_view = stacked.view();
+        let res_stacked = self.par_forward(stacked_view);
+        let res_stacked_view = res_stacked.view();
+        let res_views = split_arr_view_into_chunks_by_axis0(&res_stacked_view, inputs.len());
+        res_views
+            .iter()
+            .map(|arr_view| arr_view.clone().into_owned())
+            .collect()
+    }
 }
 
 impl<T, U> TensorSampleIndependent<T> for U
