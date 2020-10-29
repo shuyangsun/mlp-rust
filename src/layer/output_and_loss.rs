@@ -1,6 +1,6 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
-use super::super::traits::tensor_traits::{Tensor, TensorSampleIndependent};
+use super::super::traits::tensor_traits::{Tensor, TensorForwardParallelable};
 use crate::utility::counter::CounterEst;
 use ndarray::{prelude::*, Axis};
 use ndarray_stats;

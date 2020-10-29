@@ -8,8 +8,8 @@ use std::cell::RefCell;
 
 #[derive(Clone)]
 enum LayerOutput<T> {
-    Basic(ArrayD<T>),
-    SampleIndependent(Vec<ArrayD<T>>),
+    Single(ArrayD<T>),
+    Multiple(Vec<ArrayD<T>>),
 }
 
 pub struct LayerChain<T>
@@ -66,18 +66,18 @@ where
         let first_res = match self.layers.first().unwrap() {
             TensorTraitObjWrapper::Basic(layer) => {
                 if is_parallel {
-                    LayerOutput::Basic(layer.par_forward(input))
+                    LayerOutput::Single(layer.par_forward(input))
                 } else {
-                    LayerOutput::Basic(layer.forward(input))
+                    LayerOutput::Single(layer.forward(input))
                 }
             }
-            TensorTraitObjWrapper::SampleIndependent(layer) => {
+            TensorTraitObjWrapper::ForwardParallel(layer) => {
                 if is_parallel {
                     let thread_count = num_cpus::get();
                     let view_sliced = split_arr_view_into_chunks_by_axis0(&input, thread_count);
-                    LayerOutput::SampleIndependent(layer.par_batch_forward(&view_sliced))
+                    LayerOutput::Multiple(layer.par_batch_forward(&view_sliced))
                 } else {
-                    LayerOutput::Basic(layer.forward(input))
+                    LayerOutput::Single(layer.forward(input))
                 }
             }
         };
@@ -97,8 +97,8 @@ where
             outputs.pop().unwrap()
         };
         match last_output {
-            LayerOutput::Basic(arr) => arr,
-            LayerOutput::SampleIndependent(arr_vec) => {
+            LayerOutput::Single(arr) => arr,
+            LayerOutput::Multiple(arr_vec) => {
                 let arr_view: Vec<ArrayViewD<T>> = arr_vec.iter().map(|ele| ele.view()).collect();
                 stack_arr_views(&arr_view)
             }
@@ -127,7 +127,7 @@ where
         for layer in &self.layers {
             res += match layer {
                 TensorTraitObjWrapper::Basic(tensor) => tensor.num_parameters(),
-                TensorTraitObjWrapper::SampleIndependent(tensor) => tensor.num_parameters(),
+                TensorTraitObjWrapper::ForwardParallel(tensor) => tensor.num_parameters(),
             };
         }
         res
@@ -138,7 +138,7 @@ where
         for layer in &self.layers {
             res += match layer {
                 TensorTraitObjWrapper::Basic(tensor) => tensor.num_operations_per_forward(),
-                TensorTraitObjWrapper::SampleIndependent(tensor) => {
+                TensorTraitObjWrapper::ForwardParallel(tensor) => {
                     tensor.num_operations_per_forward()
                 }
             };
@@ -158,46 +158,44 @@ where
     if is_parallel {
         match layer {
             TensorTraitObjWrapper::Basic(layer) => match input {
-                LayerOutput::Basic(input_arr) => {
-                    LayerOutput::Basic(layer.par_forward(input_arr.view()))
+                LayerOutput::Single(input_arr) => {
+                    LayerOutput::Single(layer.par_forward(input_arr.view()))
                 }
-                LayerOutput::SampleIndependent(input_vec) => {
+                LayerOutput::Multiple(input_vec) => {
                     let input_view: Vec<ArrayViewD<T>> =
                         input_vec.iter().map(|ele| ele.view()).collect();
                     let stacked = stack_arr_views(&input_view);
-                    LayerOutput::Basic(layer.par_forward(stacked.view()))
+                    LayerOutput::Single(layer.par_forward(stacked.view()))
                 }
             },
-            TensorTraitObjWrapper::SampleIndependent(layer) => match input {
-                LayerOutput::Basic(input_arr) => {
+            TensorTraitObjWrapper::ForwardParallel(layer) => match input {
+                LayerOutput::Single(input_arr) => {
                     let thread_count = num_cpus::get();
                     let input_view = input_arr.view();
                     let view_sliced =
                         split_arr_view_into_chunks_by_axis0(&input_view, thread_count);
-                    LayerOutput::SampleIndependent(layer.par_batch_forward(&view_sliced))
+                    LayerOutput::Multiple(layer.par_batch_forward(&view_sliced))
                 }
-                LayerOutput::SampleIndependent(input_vec) => {
+                LayerOutput::Multiple(input_vec) => {
                     let input_view: Vec<ArrayViewD<T>> =
                         input_vec.iter().map(|ele| ele.view()).collect();
-                    LayerOutput::SampleIndependent(layer.par_batch_forward(&input_view))
+                    LayerOutput::Multiple(layer.par_batch_forward(&input_view))
                 }
             },
         }
     } else {
         match input {
-            LayerOutput::Basic(input_arr) => LayerOutput::Basic(match layer {
+            LayerOutput::Single(input_arr) => LayerOutput::Single(match layer {
                 TensorTraitObjWrapper::Basic(tensor) => tensor.forward(input_arr.view()),
-                TensorTraitObjWrapper::SampleIndependent(tensor) => {
-                    tensor.forward(input_arr.view())
-                }
+                TensorTraitObjWrapper::ForwardParallel(tensor) => tensor.forward(input_arr.view()),
             }),
-            LayerOutput::SampleIndependent(input_vec) => {
+            LayerOutput::Multiple(input_vec) => {
                 let input_view: Vec<ArrayViewD<T>> =
                     input_vec.iter().map(|ele| ele.view()).collect();
                 let stacked = stack_arr_views(&input_view);
-                LayerOutput::Basic(match layer {
+                LayerOutput::Single(match layer {
                     TensorTraitObjWrapper::Basic(tensor) => tensor.forward(stacked.view()),
-                    TensorTraitObjWrapper::SampleIndependent(tensor) => {
+                    TensorTraitObjWrapper::ForwardParallel(tensor) => {
                         tensor.forward(stacked.view())
                     }
                 })

@@ -47,7 +47,7 @@ where
     }
 }
 
-pub trait TensorSampleIndependent<T>: Tensor<T>
+pub trait TensorForwardParallelable<T>: Tensor<T>
 where
     T: MLPFloat,
 {
@@ -64,7 +64,7 @@ where
     }
 }
 
-impl<T, U> TensorSampleIndependent<T> for U
+impl<T, U> TensorForwardParallelable<T> for U
 where
     T: MLPFloat,
     U: Tensor<T> + Sync,
@@ -82,7 +82,7 @@ where
     T: MLPFloat,
 {
     Basic(Box<dyn Tensor<T>>),
-    SampleIndependent(Box<dyn TensorSampleIndependent<T>>),
+    ForwardParallel(Box<dyn TensorForwardParallelable<T>>),
 }
 
 #[macro_export]
@@ -95,6 +95,6 @@ macro_rules! tensor {
 #[macro_export]
 macro_rules! par_tensor {
     ($x:expr) => {{
-        TensorTraitObjWrapper::SampleIndependent(Box::new($x))
+        TensorTraitObjWrapper::ForwardParallel(Box::new($x))
     }};
 }
