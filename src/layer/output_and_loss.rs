@@ -56,5 +56,3 @@ where
         }
     }
 }
-
-impl<T> TensorSampleIndependent<T> for Loss where T: MLPFloat {}

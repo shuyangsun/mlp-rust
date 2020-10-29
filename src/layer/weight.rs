@@ -56,8 +56,6 @@ where
     }
 }
 
-impl<T> TensorSampleIndependent<T> for Weight<T> where T: MLPFloat {}
-
 impl<T> Weight<T>
 where
     T: MLPFloat + MLPFLoatRandSampling,

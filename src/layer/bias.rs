@@ -41,8 +41,6 @@ where
     }
 }
 
-impl<T> TensorSampleIndependent<T> for Bias<T> where T: MLPFloat {}
-
 impl<T> Bias<T>
 where
     T: MLPFloat + MLPFLoatRandSampling,

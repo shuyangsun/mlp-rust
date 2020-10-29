@@ -88,8 +88,6 @@ where
     }
 }
 
-impl<T> TensorSampleIndependent<T> for Activation where T: MLPFloat {}
-
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;

@@ -49,7 +49,14 @@ where
 pub trait TensorSampleIndependent<T>: Tensor<T>
 where
     T: MLPFloat,
-    Self: Sync,
+{
+    fn par_batch_forward(&self, inputs: &Vec<ArrayViewD<T>>) -> Vec<ArrayD<T>>;
+}
+
+impl<T, U> TensorSampleIndependent<T> for U
+where
+    T: MLPFloat,
+    U: Tensor<T> + Sync,
 {
     fn par_batch_forward(&self, inputs: &Vec<ArrayViewD<T>>) -> Vec<ArrayD<T>> {
         inputs
