@@ -1,26 +1,30 @@
 use crate::layer::chain::LayerChain;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
-use crate::traits::tensor_traits::Tensor;
+use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
 use crate::utility::counter::CounterEst;
 use ndarray::{Array1, ArrayView2, Ix2};
 
-pub struct MLPClassifier<T>
+pub struct Model<T>
 where
     T: MLPFLoatRandSampling,
 {
     layer_chain: LayerChain<T>,
 }
 
-impl<T> MLPClassifier<T>
+impl<T> Model<T>
 where
     T: MLPFLoatRandSampling,
 {
-    pub fn new(layer_sizes: &Vec<usize>) -> Self {
+    pub fn train(input: ArrayView2<T>, expected_output: ArrayView2<T>) {
         unimplemented!()
     }
 
-    pub fn train(input: ArrayView2<T>, output: ArrayView2<T>) {
-        unimplemented!()
+    pub fn add(&mut self, layer: TensorTraitObjWrapper<T>) {
+        self.layer_chain.push(layer);
+    }
+
+    pub fn add_all<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(&mut self, layers: I) {
+        self.layer_chain.push_all(layers)
     }
 
     pub fn num_param(&self) -> CounterEst<usize> {

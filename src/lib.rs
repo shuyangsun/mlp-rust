@@ -3,4 +3,4 @@ mod model;
 mod traits;
 mod utility;
 
-pub use self::model::mlp::MLPClassifier;
+pub use self::model::model::Model;

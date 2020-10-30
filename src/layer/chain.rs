@@ -41,6 +41,10 @@ where
         self.layers.push(layer)
     }
 
+    pub fn push_all<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(&mut self, layer: I) {
+        self.layers.extend(layer)
+    }
+
     pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, false, false)
     }
@@ -207,7 +211,7 @@ where
 #[cfg(test)]
 mod unit_test {
     #[macro_use]
-    use crate::{tensor, par_tensor};
+    use crate::{relu, tanh, dense};
     extern crate ndarray;
     use super::LayerChain;
     use crate::layer::{
@@ -221,12 +225,12 @@ mod unit_test {
 
     fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> LayerChain<f32> {
         LayerChain::new_from_sublayers(vec![
-            par_tensor!(Dense::new_random_uniform(input_size, 4096)),
-            par_tensor!(Bias::new(4096)),
+            dense!(input_size, 4096),
+            bias!(4096),
             par_tensor!(Activation::LeakyReLu),
             par_tensor!(Dense::new_random_uniform(4096, 2048)),
             par_tensor!(Bias::new(2048)),
-            par_tensor!(Activation::ReLu),
+            relu!(),
             par_tensor!(Dense::new_random_uniform(2048, 1024)),
             par_tensor!(Bias::new(1024)),
             par_tensor!(Activation::TanH),

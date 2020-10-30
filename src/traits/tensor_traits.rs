@@ -84,17 +84,3 @@ where
     Basic(Box<dyn Tensor<T>>),
     ForwardParallel(Box<dyn TensorForwardParallelable<T>>),
 }
-
-#[macro_export]
-macro_rules! tensor {
-    ($x:expr) => {{
-        TensorTraitObjWrapper::Basic(Box::new($x))
-    }};
-}
-
-#[macro_export]
-macro_rules! par_tensor {
-    ($x:expr) => {{
-        TensorTraitObjWrapper::ForwardParallel(Box::new($x))
-    }};
-}

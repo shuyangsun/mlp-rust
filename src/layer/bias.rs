@@ -59,6 +59,15 @@ where
     }
 }
 
+#[macro_export]
+macro_rules! bias {
+    ($x:expr) => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(Bias::new(
+            $x,
+        )))
+    }};
+}
+
 #[cfg(test)]
 mod unit_test {
     extern crate ndarray;

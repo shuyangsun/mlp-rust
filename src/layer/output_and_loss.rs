@@ -56,3 +56,19 @@ where
         }
     }
 }
+
+#[macro_export]
+macro_rules! mse {
+    () => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(Loss::MSE))
+    }};
+}
+
+#[macro_export]
+macro_rules! softmax {
+    () => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
+            Loss::SoftmaxCrossEntropy,
+        ))
+    }};
+}

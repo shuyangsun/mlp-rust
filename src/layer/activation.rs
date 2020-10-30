@@ -8,7 +8,7 @@ pub enum Activation {
     TanH,
     ReLu,
     LeakyReLu,
-    Swish, // TODO: implementation
+    // Swish, // TODO: implementation
 }
 
 impl Activation {
@@ -87,6 +87,33 @@ where
             Self::LeakyReLu => 1,
         })
     }
+}
+
+#[macro_export]
+macro_rules! tanh {
+    () => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
+            Activation::TanH,
+        ))
+    }};
+}
+
+#[macro_export]
+macro_rules! relu {
+    () => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
+            Activation::ReLu,
+        ))
+    }};
+}
+
+#[macro_export]
+macro_rules! leaky_relu {
+    () => {{
+        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
+            Activation::LeakyReLu,
+        ))
+    }};
 }
 
 #[cfg(test)]
