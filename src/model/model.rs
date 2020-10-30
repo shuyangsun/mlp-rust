@@ -15,6 +15,12 @@ impl<T> Model<T>
 where
     T: MLPFLoatRandSampling,
 {
+    pub fn new() -> Self {
+        Self {
+            layer_chain: LayerChain::new(),
+        }
+    }
+
     pub fn train(input: ArrayView2<T>, expected_output: ArrayView2<T>) {
         unimplemented!()
     }
