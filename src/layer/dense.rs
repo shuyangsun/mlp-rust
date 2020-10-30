@@ -7,7 +7,7 @@ use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 
-pub struct Weight<T>
+pub struct Dense<T>
 where
     T: MLPFloat,
 {
@@ -15,7 +15,7 @@ where
     weight_mat: ArrayD<T>, // n1 x n2
 }
 
-impl<T> Tensor<T> for Weight<T>
+impl<T> Tensor<T> for Dense<T>
 where
     T: MLPFloat,
 {
@@ -56,7 +56,7 @@ where
     }
 }
 
-impl<T> Weight<T>
+impl<T> Dense<T>
 where
     T: MLPFloat + MLPFLoatRandSampling,
 {
@@ -83,7 +83,7 @@ mod unit_test {
     extern crate ndarray;
 
     use super::super::super::traits::tensor_traits::Tensor;
-    use super::Weight;
+    use super::Dense;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -91,7 +91,7 @@ mod unit_test {
     #[test]
     fn test_weights_forward() {
         let arr = &arr2(&[[1.5, -2.], [1.3, 2.1], [1.1, 0.5]]).into_dyn();
-        let weights = Weight::new_random_uniform(2, 5);
+        let weights = Dense::new_random_uniform(2, 5);
         let forward_res = weights.forward(arr.view());
         let par_forward_res = weights.par_forward(arr.view());
         assert_eq!(forward_res.ndim(), 2usize);
@@ -103,7 +103,7 @@ mod unit_test {
     fn test_weights_forward_rand_1() {
         let shape = [1024, 100];
         let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let weights = Weight::new_random_uniform(100, 50);
+        let weights = Dense::new_random_uniform(100, 50);
         let forward_res = weights.forward(rand_arr.view());
         let par_forward_res = weights.par_forward(rand_arr.view());
         assert_eq!(forward_res.ndim(), 2usize);
@@ -115,7 +115,7 @@ mod unit_test {
     fn test_weights_forward_rand_2() {
         let shape = [997, 100];
         let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let weights = Weight::new_random_uniform(100, 50);
+        let weights = Dense::new_random_uniform(100, 50);
         let forward_res = weights.forward(rand_arr.view());
         let par_forward_res = weights.par_forward(rand_arr.view());
         assert_eq!(forward_res.ndim(), 2usize);

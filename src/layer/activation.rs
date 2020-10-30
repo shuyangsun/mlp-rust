@@ -8,6 +8,7 @@ pub enum Activation {
     TanH,
     ReLu,
     LeakyReLu,
+    Swish, // TODO: implementation
 }
 
 impl Activation {

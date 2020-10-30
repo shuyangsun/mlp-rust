@@ -211,8 +211,8 @@ mod unit_test {
     extern crate ndarray;
     use super::LayerChain;
     use crate::layer::{
-        activation::Activation, bias::Bias, normalization::BatchNormalization,
-        output_and_loss::Loss, weight::Weight,
+        activation::Activation, bias::Bias, dense::Dense, normalization::BatchNormalization,
+        output_and_loss::Loss,
     };
     use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
     use ndarray::prelude::*;
@@ -221,19 +221,19 @@ mod unit_test {
 
     fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> LayerChain<f32> {
         LayerChain::new_from_sublayers(vec![
-            par_tensor!(Weight::new_random_uniform(input_size, 4096)),
+            par_tensor!(Dense::new_random_uniform(input_size, 4096)),
             par_tensor!(Bias::new(4096)),
             par_tensor!(Activation::LeakyReLu),
-            par_tensor!(Weight::new_random_uniform(4096, 2048)),
+            par_tensor!(Dense::new_random_uniform(4096, 2048)),
             par_tensor!(Bias::new(2048)),
             par_tensor!(Activation::ReLu),
-            par_tensor!(Weight::new_random_uniform(2048, 1024)),
+            par_tensor!(Dense::new_random_uniform(2048, 1024)),
             par_tensor!(Bias::new(1024)),
             par_tensor!(Activation::TanH),
-            par_tensor!(Weight::new_random_uniform(1024, 500)),
+            par_tensor!(Dense::new_random_uniform(1024, 500)),
             par_tensor!(Bias::new(500)),
             par_tensor!(Activation::ReLu),
-            par_tensor!(Weight::new_random_uniform(500, output_size)),
+            par_tensor!(Dense::new_random_uniform(500, output_size)),
             par_tensor!(Bias::new(output_size)),
             par_tensor!(Loss::SoftmaxCrossEntropy),
         ])
@@ -244,13 +244,13 @@ mod unit_test {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = LayerChain::new_from_sublayers(vec![
-            par_tensor!(Weight::new_random_uniform(10, 128)),
+            par_tensor!(Dense::new_random_uniform(10, 128)),
             par_tensor!(Bias::new(128)),
             par_tensor!(Activation::TanH),
-            par_tensor!(Weight::new_random_uniform(128, 64)),
+            par_tensor!(Dense::new_random_uniform(128, 64)),
             par_tensor!(Activation::TanH),
             tensor!(BatchNormalization::new(64)),
-            par_tensor!(Weight::new_random_uniform(64, 1)),
+            par_tensor!(Dense::new_random_uniform(64, 1)),
             par_tensor!(Bias::new(1)),
             par_tensor!(Loss::MSE),
         ]);
