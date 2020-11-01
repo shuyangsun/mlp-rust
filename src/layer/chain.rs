@@ -29,10 +29,10 @@ where
         Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_sublayers(layers: Vec<TensorTraitObjWrapper<T>>) -> Self {
+    pub fn new_from_sublayers<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(layers: I) -> Self {
         Self {
             is_frozen: false,
-            layers,
+            layers: layers.into_iter().collect(),
             layer_outputs: RefCell::new(Vec::new()),
         }
     }
