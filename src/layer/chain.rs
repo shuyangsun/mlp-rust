@@ -210,8 +210,7 @@ where
 
 #[cfg(test)]
 mod unit_test {
-    #[macro_use]
-    use crate::{relu, tanh, dense};
+    use crate::prelude::*;
     extern crate ndarray;
     use super::LayerChain;
     use crate::layer::{
@@ -227,19 +226,19 @@ mod unit_test {
         LayerChain::new_from_sublayers(vec![
             dense!(input_size, 4096),
             bias!(4096),
-            par_tensor!(Activation::LeakyReLu),
-            par_tensor!(Dense::new_random_uniform(4096, 2048)),
-            par_tensor!(Bias::new(2048)),
+            leaky_relu!(),
+            dense!(4096, 2048),
+            bias!(2048),
             relu!(),
-            par_tensor!(Dense::new_random_uniform(2048, 1024)),
-            par_tensor!(Bias::new(1024)),
-            par_tensor!(Activation::TanH),
-            par_tensor!(Dense::new_random_uniform(1024, 500)),
-            par_tensor!(Bias::new(500)),
-            par_tensor!(Activation::ReLu),
-            par_tensor!(Dense::new_random_uniform(500, output_size)),
-            par_tensor!(Bias::new(output_size)),
-            par_tensor!(Loss::SoftmaxCrossEntropy),
+            dense!(2048, 1024),
+            bias!(1024),
+            tanh!(),
+            dense!(1024, 500),
+            bias!(500),
+            relu!(),
+            dense!(500, output_size),
+            bias!(output_size),
+            softmax!(),
         ])
     }
 
@@ -248,15 +247,15 @@ mod unit_test {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = LayerChain::new_from_sublayers(vec![
-            par_tensor!(Dense::new_random_uniform(10, 128)),
-            par_tensor!(Bias::new(128)),
-            par_tensor!(Activation::TanH),
-            par_tensor!(Dense::new_random_uniform(128, 64)),
-            par_tensor!(Activation::TanH),
-            tensor!(BatchNormalization::new(64)),
-            par_tensor!(Dense::new_random_uniform(64, 1)),
-            par_tensor!(Bias::new(1)),
-            par_tensor!(Loss::MSE),
+            dense!(10, 128),
+            bias!(128),
+            tanh!(),
+            dense!(128, 64),
+            tanh!(),
+            batch_norm!(64),
+            dense!(64, 1),
+            bias!(1),
+            mse!(),
         ]);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
