@@ -11,7 +11,7 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
-    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T>;
+    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T>;
 
     fn backward_updatable_mat(&mut self) -> ArrayViewMutD<T> {
         unimplemented!()

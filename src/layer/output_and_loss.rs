@@ -39,7 +39,7 @@ where
         res
     }
 
-    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
         let output_shape = output.shape();
         Array::ones(output_shape)
     }

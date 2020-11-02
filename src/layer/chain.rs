@@ -120,7 +120,7 @@ where
         self.forward_helper(input, true, false)
     }
 
-    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 
