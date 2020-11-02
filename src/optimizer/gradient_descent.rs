@@ -27,6 +27,7 @@ where
         gradient.par_map_inplace(|ele| *ele = *ele * self.learning_rate);
     }
 
+    // TODO: uncomment to test performance
     // fn modify(&self, gradient: ArrayViewD<'_, T>) -> ArrayD<T> {
     //     gradient.mapv(|ele| ele * self.learning_rate)
     // }
