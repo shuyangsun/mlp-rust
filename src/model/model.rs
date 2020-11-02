@@ -33,10 +33,13 @@ where
         max_num_iter: usize,
         optimizer: &Box<dyn Optimizer<T>>,
         input: ArrayD<T>,
+        output: ArrayD<T>,
         expected_output: ArrayViewD<T>,
     ) {
-        for i in 0..max_num_iter {
+        for _ in 0..max_num_iter {
             let forward_res = self.layer_chain.forward(input.view());
+            assert_eq!(forward_res.shape(), output.shape());
+            let mut cur_gradient = forward_res - &output;
         }
     }
 

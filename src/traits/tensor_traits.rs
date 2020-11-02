@@ -1,5 +1,6 @@
 extern crate ndarray;
 use super::numerical_traits::MLPFloat;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
 use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::prelude::*;
@@ -24,14 +25,12 @@ where
         true
     }
 
-    fn update(&mut self, gradient_last_layer: ArrayViewD<T>) {
+    fn update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
         if self.is_frozen() {
             return;
         }
         let mut original_mat = self.updatable_mat();
-        let update_res: ArrayD<T> = &original_mat - &gradient_last_layer;
-        assert_eq!(update_res.shape(), original_mat.shape());
-        original_mat.assign(&update_res);
+        optimizer.change_values(&mut original_mat, gradient);
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

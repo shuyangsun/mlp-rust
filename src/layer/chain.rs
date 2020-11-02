@@ -1,9 +1,11 @@
 use crate::traits::numerical_traits::MLPFloat;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
 use crate::utility::counter::CounterEst;
 use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::{ArrayD, ArrayViewD};
 use num_cpus;
+use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 
 #[derive(Clone)]
@@ -148,6 +150,27 @@ where
             };
         }
         res
+    }
+
+    fn update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
+        let mut cur_gradient = gradient.into_owned();
+        let num_layers = self.layers.len();
+        for layer_idx in (0..num_layers).rev() {
+            if layer_idx < num_layers - 1 {
+                // TODO: wrong
+                cur_gradient = match self.layers[layer_idx + 1].borrow() {
+                    TensorTraitObjWrapper::Basic(val) => val.backward(cur_gradient.view()),
+                    TensorTraitObjWrapper::ForwardParallel(val) => {
+                        val.backward(cur_gradient.view())
+                    }
+                };
+            }
+            let mut original_mat = match self.layers[layer_idx].borrow_mut() {
+                TensorTraitObjWrapper::Basic(val) => val.updatable_mat(),
+                TensorTraitObjWrapper::ForwardParallel(val) => val.updatable_mat(),
+            };
+            optimizer.change_values(&mut original_mat, cur_gradient.view());
+        }
     }
 }
 
