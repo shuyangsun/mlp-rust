@@ -3,7 +3,7 @@ use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
 use crate::utility::counter::CounterEst;
 use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
-use ndarray::{ArrayD, ArrayViewD};
+use ndarray::prelude::*;
 use num_cpus;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
@@ -153,23 +153,37 @@ where
     }
 
     fn update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
+        if self.is_frozen {
+            return;
+        }
         let mut cur_gradient = gradient.into_owned();
         let num_layers = self.layers.len();
         for layer_idx in (0..num_layers).rev() {
-            if layer_idx < num_layers - 1 {
-                // TODO: wrong
-                cur_gradient = match self.layers[layer_idx + 1].borrow() {
-                    TensorTraitObjWrapper::Basic(val) => val.backward(cur_gradient.view()),
-                    TensorTraitObjWrapper::ForwardParallel(val) => {
-                        val.backward(cur_gradient.view())
-                    }
-                };
-            }
-            let mut original_mat = match self.layers[layer_idx].borrow_mut() {
-                TensorTraitObjWrapper::Basic(val) => val.updatable_mat(),
-                TensorTraitObjWrapper::ForwardParallel(val) => val.updatable_mat(),
+            // Chain rule to multiply current layer output.
+            let gradient_mul_output = match &self.layer_outputs.borrow()[layer_idx] {
+                LayerOutput::Single(layer_output) => cur_gradient * layer_output,
+                LayerOutput::Multiple(layer_outputs_vec) => {
+                    let layer_outputs_views =
+                        layer_outputs_vec.iter().map(|ele| ele.view()).collect();
+                    let stacked_layer_outputs_views = stack_arr_views(&layer_outputs_views);
+                    cur_gradient * stacked_layer_outputs_views
+                }
             };
-            optimizer.change_values(&mut original_mat, cur_gradient.view());
+            // Calculate next gradient before updating layer values.
+            let next_gradient = match self.layers[layer_idx].borrow() {
+                TensorTraitObjWrapper::Basic(val) => val.backward(gradient_mul_output.view()),
+                TensorTraitObjWrapper::ForwardParallel(val) => {
+                    val.backward(gradient_mul_output.view())
+                }
+            };
+            // Update matrix with current gradient.
+            let mut original_mat = match self.layers[layer_idx].borrow_mut() {
+                TensorTraitObjWrapper::Basic(layer) => layer.updatable_mat(),
+                TensorTraitObjWrapper::ForwardParallel(layer) => layer.updatable_mat(),
+            };
+            optimizer.change_values(&mut original_mat, gradient_mul_output.view());
+            // Update current gradient with next gradient.
+            cur_gradient = next_gradient;
         }
     }
 }

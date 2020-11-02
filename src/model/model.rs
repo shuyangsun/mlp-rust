@@ -39,7 +39,8 @@ where
         for _ in 0..max_num_iter {
             let forward_res = self.layer_chain.forward(input.view());
             assert_eq!(forward_res.shape(), output.shape());
-            let mut cur_gradient = forward_res - &output;
+            let gradient = forward_res - &output;
+            self.layer_chain.update(gradient.view(), optimizer);
         }
     }
 
