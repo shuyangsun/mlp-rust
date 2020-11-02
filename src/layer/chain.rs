@@ -152,7 +152,7 @@ where
         res
     }
 
-    fn update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
+    fn backward_update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
         if self.is_frozen {
             return;
         }
@@ -178,8 +178,8 @@ where
             };
             // Update matrix with current gradient.
             let mut original_mat = match self.layers[layer_idx].borrow_mut() {
-                TensorTraitObjWrapper::Basic(layer) => layer.updatable_mat(),
-                TensorTraitObjWrapper::ForwardParallel(layer) => layer.updatable_mat(),
+                TensorTraitObjWrapper::Basic(layer) => layer.backward_updatable_mat(),
+                TensorTraitObjWrapper::ForwardParallel(layer) => layer.backward_updatable_mat(),
             };
             optimizer.change_values(&mut original_mat, gradient_mul_output.view());
             // Update current gradient with next gradient.

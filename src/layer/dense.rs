@@ -31,7 +31,7 @@ where
         unimplemented!()
     }
 
-    fn updatable_mat(&mut self) -> ArrayViewMutD<T> {
+    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<T> {
         self.weight_mat.view_mut()
     }
 

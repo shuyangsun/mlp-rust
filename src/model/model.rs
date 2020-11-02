@@ -40,7 +40,7 @@ where
             let forward_res = self.layer_chain.forward(input.view());
             assert_eq!(forward_res.shape(), output.shape());
             let gradient = forward_res - &output;
-            self.layer_chain.update(gradient.view(), optimizer);
+            self.layer_chain.backward_update(gradient.view(), optimizer);
         }
     }
 

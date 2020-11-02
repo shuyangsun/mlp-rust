@@ -13,7 +13,7 @@ where
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
     fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T>;
 
-    fn updatable_mat(&mut self) -> ArrayViewMutD<T> {
+    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<T> {
         unimplemented!()
     }
 
@@ -25,11 +25,11 @@ where
         true
     }
 
-    fn update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
+    fn backward_update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
         if self.is_frozen() {
             return;
         }
-        let mut original_mat = self.updatable_mat();
+        let mut original_mat = self.backward_updatable_mat();
         optimizer.change_values(&mut original_mat, gradient);
     }
 

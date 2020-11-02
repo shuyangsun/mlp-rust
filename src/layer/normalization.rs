@@ -74,7 +74,7 @@ where
         unimplemented!()
     }
 
-    fn updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
+    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
         unimplemented!()
     }
 
