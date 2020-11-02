@@ -70,7 +70,7 @@ where
         self.forward_helper(input, false)
     }
 
-    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 

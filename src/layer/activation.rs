@@ -48,10 +48,7 @@ where
         self.forward_helper(input, false)
     }
 
-    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T>
-    where
-        T: MLPFloat,
-    {
+    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         let mut res: ArrayD<T> = output.into_owned();
         match self {
             Self::TanH => res.par_mapv_inplace(|ele| T::one() - ele.powi(2)),
@@ -150,7 +147,7 @@ mod unit_test {
         let forward_res = Activation::ReLu.forward(rand_arr.view());
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
         let backward_res = Activation::ReLu.backward(forward_res.view());
-        assert_eq!(backward_res, arr1(&[0., 1.]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0., 1.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }
 
@@ -169,7 +166,7 @@ mod unit_test {
         let forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let par_forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let backward_res = Activation::LeakyReLu.backward(forward_res.view());
-        assert_eq!(backward_res, arr1(&[0.1, 1.]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0.1, 1.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }
 }

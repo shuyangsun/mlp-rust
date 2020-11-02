@@ -39,7 +39,7 @@ where
         res
     }
 
-    fn backward_batch(&self, output: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward(&self, output: ArrayViewD<T>) -> ArrayD<T> {
         let output_shape = output.shape();
         let shape_after_diff_mean = &output_shape[1..];
         Array::ones(shape_after_diff_mean)

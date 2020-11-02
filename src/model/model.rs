@@ -1,5 +1,6 @@
 use crate::layer::chain::LayerChain;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
 use crate::utility::counter::CounterEst;
 use ndarray::{ArrayD, ArrayViewD};
@@ -27,8 +28,16 @@ where
         }
     }
 
-    pub fn train(input: ArrayViewD<T>, expected_output: ArrayViewD<T>) {
-        unimplemented!()
+    pub fn train(
+        &mut self,
+        max_num_iter: usize,
+        optimizer: &Box<dyn Optimizer<T>>,
+        input: ArrayD<T>,
+        expected_output: ArrayViewD<T>,
+    ) {
+        for i in 0..max_num_iter {
+            let forward_res = self.layer_chain.forward(input.view());
+        }
     }
 
     pub fn add(&mut self, layer: TensorTraitObjWrapper<T>) {
