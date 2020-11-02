@@ -40,7 +40,7 @@ where
     }
 
     fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        let output_shape = output.shape();
+        let output_shape = gradient.shape();
         Array::ones(output_shape)
     }
 

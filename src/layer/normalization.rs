@@ -74,10 +74,6 @@ where
         unimplemented!()
     }
 
-    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
-        unimplemented!()
-    }
-
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, true)
     }

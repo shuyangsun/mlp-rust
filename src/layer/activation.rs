@@ -49,7 +49,7 @@ where
     }
 
     fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        let mut res: ArrayD<T> = output.into_owned();
+        let mut res: ArrayD<T> = gradient.into_owned();
         match self {
             Self::TanH => res.par_mapv_inplace(|ele| T::one() - ele.powi(2)),
             Self::ReLu => {
