@@ -55,10 +55,6 @@ where
         self.forward_helper(input, false, true)
     }
 
-    pub fn output_diff(&self, expected: ArrayViewD<T>, actual: ArrayViewD<T>) -> ArrayD<T> {
-        &expected - &actual
-    }
-
     fn forward_helper(
         &self,
         input: ArrayViewD<T>,
