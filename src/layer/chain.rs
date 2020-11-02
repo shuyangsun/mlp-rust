@@ -217,7 +217,6 @@ mod unit_test {
         activation::Activation, bias::Bias, dense::Dense, normalization::BatchNormalization,
         output_and_loss::Loss,
     };
-    use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
