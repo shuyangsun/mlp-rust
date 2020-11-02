@@ -16,9 +16,8 @@ where
     }
 
     fn change_values(&self, old_value: &mut ArrayViewMutD<T>, gradient: ArrayViewD<T>) {
-        assert_eq!(old_value.shape(), gradient.shape());
         let diff = self.modify(gradient);
-        let diff_view = diff.view();
+        let diff_view = diff.broadcast(old_value.dim()).unwrap();
         let zip = Zip::from(old_value).and(&diff_view);
         zip.apply(|old, delta| {
             *old = *old - *delta;

@@ -1,4 +1,5 @@
 use crate::layer::chain::LayerChain;
+use crate::optimizer::gradient_descent::GradientDescent;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
 use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
@@ -32,14 +33,14 @@ where
         &mut self,
         max_num_iter: usize,
         optimizer: &Box<dyn Optimizer<T>>,
-        input: ArrayD<T>,
-        output: ArrayD<T>,
+        input: ArrayViewD<T>,
         expected_output: ArrayViewD<T>,
     ) {
+        let asdf = input.clone();
         for _ in 0..max_num_iter {
-            let forward_res = self.layer_chain.forward(input.view());
-            assert_eq!(forward_res.shape(), output.shape());
-            let gradient = forward_res - &output;
+            let forward_res = self.layer_chain.forward(asdf.view());
+            assert_eq!(forward_res.shape(), expected_output.shape());
+            let gradient = forward_res - &expected_output;
             self.layer_chain.backward_update(gradient.view(), optimizer);
         }
     }
@@ -74,6 +75,8 @@ mod unit_test {
     use crate::prelude::*;
     use crate::Model;
     extern crate ndarray;
+    use crate::optimizer::gradient_descent::GradientDescent;
+    use crate::traits::optimizer_traits::Optimizer;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -98,8 +101,20 @@ mod unit_test {
         ])
     }
 
+    fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
+        Model::new_from_layers(vec![
+            dense!(input_size, 128),
+            bias!(128),
+            relu!(),
+            dense!(128, output_size),
+            bias!(output_size),
+            relu!(),
+            softmax!(),
+        ])
+    }
+
     #[test]
-    fn test_chained_forward() {
+    fn test_model_forward() {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = Model::new_from_layers(vec![
@@ -120,7 +135,7 @@ mod unit_test {
     }
 
     #[test]
-    fn test_chained_predict_stress() {
+    fn test_model_predict_stress() {
         let shape = &[100usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
@@ -130,12 +145,22 @@ mod unit_test {
     }
 
     #[test]
-    fn test_chained_par_predict_stress() {
+    fn test_model_par_predict_stress() {
         let shape = &[1000usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_dnn_classifier(shape[1], output_size);
         let prediction = dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[shape[0], output_size]);
+    }
+
+    #[test]
+    fn test_model_train() {
+        let shape = [3, 10];
+        let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
+        let output_data = Array::random((3, 1), Uniform::new(0., 10.)).into_dyn();
+        let mut simple_dnn = generate_simple_dnn(shape[1], 1);
+        let optimizer = Box::new(GradientDescent::new(0.01f32)) as Box<dyn Optimizer<f32>>;
+        simple_dnn.train(5, &optimizer, input_data.view(), output_data.view());
     }
 }

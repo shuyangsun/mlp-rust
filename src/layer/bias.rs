@@ -21,7 +21,7 @@ where
     }
 
     fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!()
+        gradient.into_owned()
     }
 
     fn backward_updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {

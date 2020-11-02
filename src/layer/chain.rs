@@ -137,9 +137,9 @@ where
         for layer_idx in (0..num_layers).rev() {
             // Chain rule to multiply current layer output.
             let mut shape_after_mean_samples = Vec::from(cur_gradient.shape());
-            shape_after_mean_samples.insert(0, 1);
+            shape_after_mean_samples[0] = 1;
             let gradient_mul_output = match &self.layer_outputs.borrow()[layer_idx] {
-                LayerOutput::Single(layer_output) => cur_gradient * layer_output,
+                LayerOutput::Single(layer_output) => layer_output * &cur_gradient,
                 LayerOutput::Multiple(layer_outputs_vec) => {
                     let layer_outputs_views =
                         layer_outputs_vec.iter().map(|ele| ele.view()).collect();
@@ -159,11 +159,17 @@ where
                 }
             };
             // Update matrix with current gradient.
-            let mut original_mat = match self.layers[layer_idx].borrow_mut() {
-                TensorTraitObjWrapper::Basic(layer) => layer.backward_updatable_mat(),
-                TensorTraitObjWrapper::ForwardParallel(layer) => layer.backward_updatable_mat(),
+            let is_frozen = match self.layers[layer_idx].borrow_mut() {
+                TensorTraitObjWrapper::Basic(layer) => layer.is_frozen(),
+                TensorTraitObjWrapper::ForwardParallel(layer) => layer.is_frozen(),
             };
-            optimizer.change_values(&mut original_mat, gradient_mul_output.view());
+            if !is_frozen {
+                let mut original_mat = match self.layers[layer_idx].borrow_mut() {
+                    TensorTraitObjWrapper::Basic(layer) => layer.backward_updatable_mat(),
+                    TensorTraitObjWrapper::ForwardParallel(layer) => layer.backward_updatable_mat(),
+                };
+                optimizer.change_values(&mut original_mat, gradient_mul_output.view());
+            }
             // Update current gradient with next gradient.
             cur_gradient = next_gradient;
         }

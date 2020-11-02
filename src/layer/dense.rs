@@ -28,7 +28,16 @@ where
     }
 
     fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!()
+        linalg::mat_mul(
+            &gradient.into_dimensionality::<Ix2>().unwrap(),
+            &self
+                .weight_mat
+                .view()
+                .into_dimensionality::<Ix2>()
+                .unwrap()
+                .t(),
+        )
+        .into_dyn()
     }
 
     fn backward_updatable_mat(&mut self) -> ArrayViewMutD<T> {
