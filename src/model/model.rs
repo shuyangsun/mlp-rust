@@ -75,8 +75,6 @@ mod unit_test {
     use crate::prelude::*;
     use crate::Model;
     extern crate ndarray;
-    use crate::optimizer::gradient_descent::GradientDescent;
-    use crate::traits::optimizer_traits::Optimizer;
     use crate::traits::tensor_traits::Tensor;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
@@ -168,8 +166,12 @@ mod unit_test {
             "Before train prediction: {:#?}",
             simple_dnn.predict(input_data.view())
         );
-        let optimizer = Box::new(GradientDescent::new(0.01f32)) as Box<dyn Optimizer<f32>>;
-        simple_dnn.train(2, &optimizer, input_data.view(), output_data.view());
+        simple_dnn.train(
+            2,
+            &gradient_descent!(0.01f32),
+            input_data.view(),
+            output_data.view(),
+        );
         println!(
             "After train prediction: {:#?}",
             simple_dnn.predict(input_data.view())

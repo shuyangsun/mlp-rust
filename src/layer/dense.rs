@@ -45,6 +45,18 @@ where
         .into_dyn()
     }
 
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        linalg::par_mat_mul(
+            &input.into_dimensionality::<Ix2>().unwrap(),
+            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
+        )
+        .into_dyn()
+    }
+
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
+
     fn backward_update(
         &mut self,
         input: ArrayViewD<T>,           // m x n1
@@ -57,18 +69,6 @@ where
         )
         .into_dyn();
         optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
-    }
-
-    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        linalg::par_mat_mul(
-            &input.into_dimensionality::<Ix2>().unwrap(),
-            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
-        )
-        .into_dyn()
-    }
-
-    fn is_frozen(&self) -> bool {
-        self.is_frozen
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

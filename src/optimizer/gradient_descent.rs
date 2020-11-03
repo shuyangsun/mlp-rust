@@ -31,3 +31,10 @@ where
     //     gradient.mapv(|ele| ele * self.learning_rate)
     // }
 }
+
+#[macro_export]
+macro_rules! gradient_descent {
+    ($x:expr) => {{
+        Box::new(crate::optimizer::gradient_descent::GradientDescent::new($x))
+    }};
+}
