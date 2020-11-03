@@ -1,4 +1,5 @@
 use crate::layer::chain::LayerChain;
+use crate::loss::loss::Loss;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
 use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::Tensor;
@@ -10,21 +11,27 @@ where
     T: MLPFLoatRandSampling,
 {
     layer_chain: LayerChain<T>,
+    loss_function: Loss,
 }
 
 impl<T> Model<T>
 where
     T: MLPFLoatRandSampling,
 {
-    pub fn new() -> Self {
+    pub fn new(loss_function: Loss) -> Self {
         Self {
             layer_chain: LayerChain::new(),
+            loss_function,
         }
     }
 
-    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(layers: I) -> Self {
+    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
+        layers: I,
+        loss_function: Loss,
+    ) -> Self {
         Self {
             layer_chain: LayerChain::new_from_sublayers(layers),
+            loss_function,
         }
     }
 
@@ -35,13 +42,31 @@ where
         input: ArrayViewD<T>,
         expected_output: ArrayViewD<T>,
     ) {
-        let asdf = input.clone();
+        // TODD: clones below are temp var for testing.
+        let input_clone = input.clone();
+        let expected_output_clone = expected_output.clone();
         for i in 0..max_num_iter {
-            let forward_res = self.layer_chain.forward(asdf.view());
-            assert_eq!(forward_res.shape(), expected_output.shape());
-            let gradient = &forward_res - &expected_output;
-            self.layer_chain
-                .backward_update_check_frozen(asdf.view(), gradient.view(), optimizer);
+            let forward_res = self.layer_chain.forward(input_clone.view());
+            assert_eq!(forward_res.shape(), expected_output_clone.shape());
+            let gradient = self.loss_function.backward_with_respect_to_input(
+                forward_res.view(),
+                expected_output_clone.view(),
+                true,
+            );
+            println!(
+                "Iter {}: loss={}",
+                i,
+                self.loss_function.calculate_loss(
+                    forward_res.view(),
+                    expected_output_clone.view(),
+                    true
+                )
+            );
+            self.layer_chain.backward_update_check_frozen(
+                input_clone.view(),
+                gradient.view(),
+                optimizer,
+            );
         }
     }
 
@@ -62,11 +87,13 @@ where
     }
 
     pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.layer_chain.predict(input)
+        self.loss_function
+            .predict(self.layer_chain.predict(input).view(), false)
     }
 
     pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.layer_chain.par_predict(input.into_dyn())
+        self.loss_function
+            .predict(self.layer_chain.par_predict(input.into_dyn()).view(), true)
     }
 }
 
@@ -96,22 +123,14 @@ mod unit_test {
             relu!(),
             dense!(500, output_size),
             bias!(output_size),
-            softmax!(),
         ];
-        Model::new_from_layers(layers)
+        Model::new_from_layers(layers, softmax_cross_entropy!())
     }
 
     fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
-        let layers: Vec<Box<dyn Tensor<f32>>> = vec![
-            dense!(input_size, 8),
-            bias!(8),
-            tanh!(),
-            dense!(8, output_size),
-            bias!(output_size),
-            tanh!(),
-            softmax!(),
-        ];
-        Model::new_from_layers(layers)
+        let layers: Vec<Box<dyn Tensor<f32>>> =
+            vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
+        Model::new_from_layers(layers, softmax_cross_entropy!())
     }
 
     #[test]
@@ -128,7 +147,7 @@ mod unit_test {
             dense!(64, 1),
             bias!(1),
         ];
-        let simple_dnn = Model::new_from_layers(layers);
+        let simple_dnn = Model::new_from_layers(layers, mse!());
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[3usize, 1usize]);
@@ -166,7 +185,7 @@ mod unit_test {
             simple_dnn.predict(input_data.view())
         );
         simple_dnn.train(
-            2,
+            100,
             &gradient_descent!(0.005f32),
             input_data.view(),
             output_data.view(),

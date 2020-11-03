@@ -1,4 +1,5 @@
 mod layer;
+mod loss;
 mod model;
 mod optimizer;
 pub mod prelude;
