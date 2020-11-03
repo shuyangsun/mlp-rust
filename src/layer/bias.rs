@@ -39,8 +39,6 @@ where
         output_gradient: ArrayViewD<T>,
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
-        println!("Bias: {}", self.bias_arr.view());
-        println!("Gradient: {}", output_gradient);
         let bias_gradient = output_gradient
             .mean_axis(Axis(0))
             .unwrap()
@@ -48,7 +46,6 @@ where
             .unwrap()
             .into_dyn();
         optimizer.change_values(&mut self.bias_arr.view_mut(), bias_gradient.view());
-        println!("Bias after update: {}", self.bias_arr.view());
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

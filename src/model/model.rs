@@ -38,12 +38,8 @@ where
         let asdf = input.clone();
         for i in 0..max_num_iter {
             let forward_res = self.layer_chain.forward(asdf.view());
-            println!("Iter {} -----------------------", i);
-            println!("Output: {}", forward_res.view());
             assert_eq!(forward_res.shape(), expected_output.shape());
-            let gradient = &expected_output - &forward_res;
-            println!("Expected Output: {}", expected_output);
-            println!("Output gradient: {}", gradient);
+            let gradient = &forward_res - &expected_output;
             self.layer_chain
                 .backward_update_check_frozen(asdf.view(), gradient.view(), optimizer);
         }
@@ -113,6 +109,7 @@ mod unit_test {
             dense!(8, output_size),
             bias!(output_size),
             tanh!(),
+            softmax!(),
         ];
         Model::new_from_layers(layers)
     }
@@ -160,17 +157,17 @@ mod unit_test {
 
     #[test]
     fn test_model_train() {
-        let shape = [3, 10];
-        let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let output_data = Array::random((3, 1), Uniform::new(0., 10.)).into_dyn();
-        let mut simple_dnn = generate_simple_dnn(shape[1], 1);
+        let input_data =
+            arr2(&vec![[0.1f32, 0.5f32], [0.7f32, 0.2f32], [5.0f32, -0.1f32]]).into_dyn();
+        let output_data = arr2(&vec![[0f32, 1f32], [1f32, 0f32], [1f32, 0f32]]).into_dyn();
+        let mut simple_dnn = generate_simple_dnn(2, 2);
         println!(
             "Before train prediction: {:#?}",
             simple_dnn.predict(input_data.view())
         );
         simple_dnn.train(
-            100,
-            &gradient_descent!(0.001f32),
+            2,
+            &gradient_descent!(0.005f32),
             input_data.view(),
             output_data.view(),
         );

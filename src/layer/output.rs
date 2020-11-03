@@ -2,7 +2,7 @@ extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
-use ndarray::{prelude::*, Axis};
+use ndarray::prelude::*;
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
@@ -42,7 +42,8 @@ where
         _: ArrayViewD<T>,
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
-        Array::ones(layer_output.shape())
+        let mut res = layer_output.into_owned();
+        res
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {
