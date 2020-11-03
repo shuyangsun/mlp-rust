@@ -1,7 +1,7 @@
 use crate::layer::chain::LayerChain;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
 use crate::traits::optimizer_traits::Optimizer;
-use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
+use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
 use ndarray::{ArrayD, ArrayViewD};
 
@@ -22,7 +22,7 @@ where
         }
     }
 
-    pub fn new_from_layers<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(layers: I) -> Self {
+    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(layers: I) -> Self {
         Self {
             layer_chain: LayerChain::new_from_sublayers(layers),
         }
@@ -45,11 +45,11 @@ where
         }
     }
 
-    pub fn add(&mut self, layer: TensorTraitObjWrapper<T>) {
+    pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
         self.layer_chain.push(layer);
     }
 
-    pub fn add_all<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(&mut self, layers: I) {
+    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layers: I) {
         self.layer_chain.push_all(layers)
     }
 
@@ -77,12 +77,13 @@ mod unit_test {
     extern crate ndarray;
     use crate::optimizer::gradient_descent::GradientDescent;
     use crate::traits::optimizer_traits::Optimizer;
+    use crate::traits::tensor_traits::Tensor;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
 
     fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> Model<f32> {
-        Model::new_from_layers(vec![
+        let layers: Vec<Box<dyn Tensor<f32>>> = vec![
             dense!(input_size, 4096),
             bias!(4096),
             leaky_relu!(),
@@ -98,11 +99,12 @@ mod unit_test {
             dense!(500, output_size),
             bias!(output_size),
             softmax!(),
-        ])
+        ];
+        Model::new_from_layers(layers)
     }
 
     fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
-        Model::new_from_layers(vec![
+        let layers: Vec<Box<dyn Tensor<f32>>> = vec![
             dense!(input_size, 8),
             bias!(8),
             relu!(),
@@ -110,14 +112,15 @@ mod unit_test {
             bias!(output_size),
             relu!(),
             mse!(),
-        ])
+        ];
+        Model::new_from_layers(layers)
     }
 
     #[test]
     fn test_model_forward() {
         let shape = [3, 10];
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let simple_dnn = Model::new_from_layers(vec![
+        let layers: Vec<Box<dyn Tensor<f32>>> = vec![
             dense!(10, 128),
             bias!(128),
             tanh!(),
@@ -127,7 +130,8 @@ mod unit_test {
             dense!(64, 1),
             bias!(1),
             mse!(),
-        ]);
+        ];
+        let simple_dnn = Model::new_from_layers(layers);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[3usize, 1usize]);

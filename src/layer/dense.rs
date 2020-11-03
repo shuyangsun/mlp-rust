@@ -105,9 +105,7 @@ where
 #[macro_export]
 macro_rules! dense {
     ($a:expr, $b:expr) => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
-            Dense::new_random_uniform($a, $b),
-        ))
+        Box::new(Dense::new_random_uniform($a, $b))
     }};
 }
 

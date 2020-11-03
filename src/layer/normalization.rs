@@ -130,9 +130,7 @@ where
 #[macro_export]
 macro_rules! batch_norm {
     ($x:expr) => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::Basic(Box::new(
-            BatchNormalization::new($x),
-        ))
+        Box::new(BatchNormalization::new($x))
     }};
 }
 

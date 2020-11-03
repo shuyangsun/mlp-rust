@@ -1,7 +1,6 @@
 use crate::traits::{numerical_traits::MLPFloat, optimizer_traits::Optimizer};
 extern crate ndarray;
 use ndarray::prelude::*;
-use rayon::prelude::*;
 
 pub struct GradientDescent<T>
 where

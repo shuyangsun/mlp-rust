@@ -78,9 +78,7 @@ where
 #[macro_export]
 macro_rules! bias {
     ($x:expr) => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(Bias::new(
-            $x,
-        )))
+        Box::new(Bias::new($x))
     }};
 }
 

@@ -97,27 +97,21 @@ where
 #[macro_export]
 macro_rules! tanh {
     () => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
-            Activation::TanH,
-        ))
+        Box::new(Activation::TanH)
     }};
 }
 
 #[macro_export]
 macro_rules! relu {
     () => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
-            Activation::ReLu,
-        ))
+        Box::new(Activation::ReLu)
     }};
 }
 
 #[macro_export]
 macro_rules! leaky_relu {
     () => {{
-        crate::traits::tensor_traits::TensorTraitObjWrapper::ForwardParallel(Box::new(
-            Activation::LeakyReLu,
-        ))
+        Box::new(Activation::LeakyReLu)
     }};
 }
 

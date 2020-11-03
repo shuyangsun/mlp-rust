@@ -1,11 +1,8 @@
 use crate::traits::numerical_traits::MLPFloat;
 use crate::traits::optimizer_traits::Optimizer;
-use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
+use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
-use crate::utility::linalg::{split_arr_view_into_chunks_by_axis0, stack_arr_views};
 use ndarray::prelude::*;
-use num_cpus;
-use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 
 pub struct LayerChain<T>
@@ -13,7 +10,7 @@ where
     T: MLPFloat,
 {
     is_frozen: bool,
-    layers: Vec<TensorTraitObjWrapper<T>>,
+    layers: Vec<Box<dyn Tensor<T>>>,
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
 
@@ -25,7 +22,7 @@ where
         Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_sublayers<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(layers: I) -> Self {
+    pub fn new_from_sublayers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(layers: I) -> Self {
         Self {
             is_frozen: false,
             layers: layers.into_iter().collect(),
@@ -33,11 +30,11 @@ where
         }
     }
 
-    pub fn push(&mut self, layer: TensorTraitObjWrapper<T>) {
+    pub fn push(&mut self, layer: Box<dyn Tensor<T>>) {
         self.layers.push(layer)
     }
 
-    pub fn push_all<I: IntoIterator<Item = TensorTraitObjWrapper<T>>>(&mut self, layer: I) {
+    pub fn push_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layer: I) {
         self.layers.extend(layer)
     }
 
@@ -59,21 +56,10 @@ where
         if self.layers.is_empty() {
             panic!("Cannot calculate feed forward propagation with no layer specified.");
         }
-        let first_res = match self.layers.first().unwrap() {
-            TensorTraitObjWrapper::Basic(layer) => {
-                if is_parallel {
-                    layer.par_forward(input)
-                } else {
-                    layer.forward(input)
-                }
-            }
-            TensorTraitObjWrapper::ForwardParallel(layer) => {
-                if is_parallel {
-                    layer.par_forward(input)
-                } else {
-                    layer.forward(input)
-                }
-            }
+        let first_res = if is_parallel {
+            self.layers.first().unwrap().par_forward(input)
+        } else {
+            self.layers.first().unwrap().forward(input)
         };
         let mut outputs = self.layer_outputs.borrow_mut();
         outputs.push(first_res);
@@ -137,27 +123,14 @@ where
             } else {
                 self.layer_outputs.borrow()[layer_idx - 1].clone()
             };
-            let next_gradient =
-                match self.layers[layer_idx].borrow() {
-                    TensorTraitObjWrapper::Basic(val) => val
-                        .backward_respect_to_input(layer_input.view(), gradient_mul_output.view()),
-                    TensorTraitObjWrapper::ForwardParallel(val) => val
-                        .backward_respect_to_input(layer_input.view(), gradient_mul_output.view()),
-                };
+            let next_gradient = self.layers[layer_idx]
+                .backward_respect_to_input(layer_input.view(), gradient_mul_output.view());
             // Update matrix with current gradient.
-            match self.layers[layer_idx].borrow_mut() {
-                TensorTraitObjWrapper::Basic(layer) => layer.backward_update_check_frozen(
-                    layer_input.view(),
-                    next_gradient.view(),
-                    optimizer,
-                ),
-                TensorTraitObjWrapper::ForwardParallel(layer) => layer
-                    .backward_update_check_frozen(
-                        layer_input.view(),
-                        next_gradient.view(),
-                        optimizer,
-                    ),
-            };
+            self.layers[layer_idx].backward_update_check_frozen(
+                layer_input.view(),
+                gradient_mul_output.view(),
+                optimizer,
+            );
             // Update current gradient with next gradient.
             cur_gradient = next_gradient;
         }
@@ -166,10 +139,7 @@ where
     fn num_parameters(&self) -> CounterEst<usize> {
         let mut res = CounterEst::Accurate(0);
         for layer in &self.layers {
-            res += match layer {
-                TensorTraitObjWrapper::Basic(tensor) => tensor.num_parameters(),
-                TensorTraitObjWrapper::ForwardParallel(tensor) => tensor.num_parameters(),
-            };
+            res += layer.num_parameters();
         }
         res
     }
@@ -177,19 +147,14 @@ where
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         let mut res = CounterEst::Accurate(0);
         for layer in &self.layers {
-            res += match layer {
-                TensorTraitObjWrapper::Basic(tensor) => tensor.num_operations_per_forward(),
-                TensorTraitObjWrapper::ForwardParallel(tensor) => {
-                    tensor.num_operations_per_forward()
-                }
-            };
+            res += layer.num_operations_per_forward();
         }
         res
     }
 }
 
 fn layer_forward_helper<T>(
-    layer: &TensorTraitObjWrapper<T>,
+    layer: &Box<dyn Tensor<T>>,
     input: ArrayViewD<T>,
     is_parallel: bool,
 ) -> ArrayD<T>
@@ -197,14 +162,8 @@ where
     T: MLPFloat,
 {
     if is_parallel {
-        match layer {
-            TensorTraitObjWrapper::Basic(layer) => layer.par_forward(input.view()),
-            TensorTraitObjWrapper::ForwardParallel(layer) => layer.par_forward(input.view()),
-        }
+        layer.par_forward(input.view())
     } else {
-        match layer {
-            TensorTraitObjWrapper::Basic(layer) => layer.forward(input.view()),
-            TensorTraitObjWrapper::ForwardParallel(layer) => layer.forward(input.view()),
-        }
+        layer.forward(input.view())
     }
 }
