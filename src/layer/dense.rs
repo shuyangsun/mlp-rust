@@ -63,12 +63,15 @@ where
         output_gradient: ArrayViewD<T>, // m x n2
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
+        println!("Weight: {}", self.weight_mat.view());
+        println!("Gradient: {}", output_gradient);
         let weight_gradient = linalg::mat_mul(
             &input.into_dimensionality::<Ix2>().unwrap().t(),
             &output_gradient.into_dimensionality::<Ix2>().unwrap(),
         )
         .into_dyn();
         optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
+        println!("Weight after update: {}", self.weight_mat.view());
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

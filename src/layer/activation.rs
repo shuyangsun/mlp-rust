@@ -18,7 +18,12 @@ impl Activation {
     {
         let mut res: ArrayD<T> = input.into_owned();
         let closure_fn: fn(T) -> T = match self {
-            Self::TanH => |ele: T| ele.sinh().div(ele.cosh()),
+            Self::TanH => |ele: T| {
+                let e = T::from_f32(std::f32::consts::E).unwrap();
+                let plus = e.powf(ele);
+                let minus = e.powf(-ele);
+                (plus - minus).div(plus + minus)
+            },
             Self::ReLu => |ele: T| ele.max(T::zero()),
             Self::LeakyReLu => |ele: T| {
                 if ele > T::zero() {
@@ -71,6 +76,7 @@ where
                 });
             }
         };
+        println!("Activation backward: {}", res.view());
         res
     }
 

@@ -16,14 +16,11 @@ where
     }
 
     fn change_values(&self, old_value: &mut ArrayViewMutD<T>, gradient: ArrayViewD<T>) {
-        let old_clone = old_value.view().into_owned();
-        println!("Old: {}", old_clone);
         let diff = self.modify(gradient);
         let diff_view = diff.broadcast(old_value.dim()).unwrap();
         let zip = Zip::from(old_value).and(&diff_view);
         zip.apply(|old, delta| {
             *old = *old - *delta;
         });
-        println!("Diff: {}", diff.view());
     }
 }

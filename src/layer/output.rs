@@ -7,8 +7,7 @@ use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
 pub enum Loss {
-    MSE,
-    SoftmaxCrossEntropy,
+    Softmax,
 }
 
 impl<T> Tensor<T> for Loss
@@ -19,8 +18,7 @@ where
         assert_eq!(input.ndim(), 2);
         let input = input.into_dimensionality::<Ix2>().unwrap();
         let res: ArrayD<T> = match self {
-            Self::MSE => input.into_owned().into_dyn(),
-            Self::SoftmaxCrossEntropy => {
+            Self::Softmax => {
                 // Subtract max value in the row from the original values, to make it numerically more stable.
                 let row_max =
                     input.map_axis(Axis(1), |row: ArrayView1<T>| row.max().unwrap().clone());
@@ -53,22 +51,14 @@ where
 
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         match self {
-            Self::MSE => CounterEst::Accurate(0),
-            Self::SoftmaxCrossEntropy => CounterEst::None, // Cannot determine because it depends on the size of last layers
+            Self::Softmax => CounterEst::None, // Cannot determine because it depends on the size of last layers
         }
     }
 }
 
 #[macro_export]
-macro_rules! mse {
-    () => {{
-        Box::new(Loss::MSE)
-    }};
-}
-
-#[macro_export]
 macro_rules! softmax {
     () => {{
-        Box::new(Loss::SoftmaxCrossEntropy)
+        Box::new(Loss::Softmax)
     }};
 }

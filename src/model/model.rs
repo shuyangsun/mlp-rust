@@ -36,10 +36,14 @@ where
         expected_output: ArrayViewD<T>,
     ) {
         let asdf = input.clone();
-        for _ in 0..max_num_iter {
+        for i in 0..max_num_iter {
             let forward_res = self.layer_chain.forward(asdf.view());
+            println!("Iter {} -----------------------", i);
+            println!("Output: {}", forward_res.view());
             assert_eq!(forward_res.shape(), expected_output.shape());
-            let gradient = forward_res - &expected_output;
+            let gradient = &expected_output - &forward_res;
+            println!("Expected Output: {}", expected_output);
+            println!("Output gradient: {}", gradient);
             self.layer_chain
                 .backward_update_check_frozen(asdf.view(), gradient.view(), optimizer);
         }
@@ -105,11 +109,10 @@ mod unit_test {
         let layers: Vec<Box<dyn Tensor<f32>>> = vec![
             dense!(input_size, 8),
             bias!(8),
-            relu!(),
+            tanh!(),
             dense!(8, output_size),
             bias!(output_size),
-            relu!(),
-            mse!(),
+            tanh!(),
         ];
         Model::new_from_layers(layers)
     }
@@ -127,7 +130,6 @@ mod unit_test {
             batch_norm!(64),
             dense!(64, 1),
             bias!(1),
-            mse!(),
         ];
         let simple_dnn = Model::new_from_layers(layers);
         let prediction = simple_dnn.predict(input_data.view());
@@ -167,8 +169,8 @@ mod unit_test {
             simple_dnn.predict(input_data.view())
         );
         simple_dnn.train(
-            2,
-            &gradient_descent!(0.01f32),
+            100,
+            &gradient_descent!(0.001f32),
             input_data.view(),
             output_data.view(),
         );
