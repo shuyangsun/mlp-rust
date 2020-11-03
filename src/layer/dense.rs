@@ -2,6 +2,7 @@ extern crate ndarray;
 use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use super::super::traits::tensor_traits::Tensor;
 use super::super::utility::linalg;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 use ndarray_rand::rand_distr::Uniform;
@@ -27,9 +28,13 @@ where
         .into_dyn()
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward_respect_to_input(
+        &self,
+        _: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T> {
         linalg::mat_mul(
-            &gradient.into_dimensionality::<Ix2>().unwrap(),
+            &layer_output.into_dimensionality::<Ix2>().unwrap(),
             &self
                 .weight_mat
                 .view()
@@ -40,8 +45,18 @@ where
         .into_dyn()
     }
 
-    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<T> {
-        self.weight_mat.view_mut()
+    fn backward_update(
+        &mut self,
+        input: ArrayViewD<T>,           // m x n1
+        output_gradient: ArrayViewD<T>, // m x n2
+        optimizer: &Box<dyn Optimizer<T>>,
+    ) {
+        let weight_gradient = linalg::mat_mul(
+            &input.into_dimensionality::<Ix2>().unwrap().t(),
+            &output_gradient.into_dimensionality::<Ix2>().unwrap(),
+        )
+        .into_dyn();
+        optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
     }
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {

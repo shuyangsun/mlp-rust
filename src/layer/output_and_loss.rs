@@ -39,9 +39,12 @@ where
         res
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        let output_shape = gradient.shape();
-        Array::ones(output_shape)
+    fn backward_respect_to_input(
+        &self,
+        _: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T> {
+        Array::ones(layer_output.shape())
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

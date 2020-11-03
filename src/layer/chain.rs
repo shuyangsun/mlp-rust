@@ -8,19 +8,13 @@ use num_cpus;
 use std::borrow::{Borrow, BorrowMut};
 use std::cell::RefCell;
 
-#[derive(Clone)]
-enum LayerOutput<T> {
-    Single(ArrayD<T>),
-    Multiple(Vec<ArrayD<T>>),
-}
-
 pub struct LayerChain<T>
 where
     T: MLPFloat,
 {
     is_frozen: bool,
     layers: Vec<TensorTraitObjWrapper<T>>,
-    layer_outputs: RefCell<Vec<LayerOutput<T>>>,
+    layer_outputs: RefCell<Vec<ArrayD<T>>>,
 }
 
 impl<T> LayerChain<T>
@@ -68,18 +62,16 @@ where
         let first_res = match self.layers.first().unwrap() {
             TensorTraitObjWrapper::Basic(layer) => {
                 if is_parallel {
-                    LayerOutput::Single(layer.par_forward(input))
+                    layer.par_forward(input)
                 } else {
-                    LayerOutput::Single(layer.forward(input))
+                    layer.forward(input)
                 }
             }
             TensorTraitObjWrapper::ForwardParallel(layer) => {
                 if is_parallel {
-                    let thread_count = num_cpus::get();
-                    let view_sliced = split_arr_view_into_chunks_by_axis0(&input, thread_count);
-                    LayerOutput::Multiple(layer.par_batch_forward(&view_sliced))
+                    layer.par_forward(input)
                 } else {
-                    LayerOutput::Single(layer.forward(input))
+                    layer.forward(input)
                 }
             }
         };
@@ -87,23 +79,16 @@ where
         outputs.push(first_res);
         for layer in &self.layers[1..] {
             let cur_input = outputs.last().unwrap();
-            let next = layer_forward_helper(layer, cur_input, is_parallel);
+            let next = layer_forward_helper(layer, cur_input.view(), is_parallel);
             if !should_cache_layer_outputs {
                 outputs.clear();
             }
             outputs.push(next);
         }
-        let last_output: LayerOutput<T> = if should_cache_layer_outputs {
+        if should_cache_layer_outputs {
             outputs.last().unwrap().clone()
         } else {
             outputs.pop().unwrap()
-        };
-        match last_output {
-            LayerOutput::Single(arr) => arr,
-            LayerOutput::Multiple(arr_vec) => {
-                let arr_view: Vec<ArrayViewD<T>> = arr_vec.iter().map(|ele| ele.view()).collect();
-                stack_arr_views(&arr_view)
-            }
         }
     }
 }
@@ -116,7 +101,7 @@ where
         self.forward_helper(input, true, false)
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 
@@ -124,48 +109,55 @@ where
         self.forward_helper(input, true, true)
     }
 
-    fn backward_update(&mut self, gradient: ArrayViewD<T>, optimizer: &Box<dyn Optimizer<T>>) {
+    fn backward_update(
+        &mut self,
+        input: ArrayViewD<T>,
+        output_gradient: ArrayViewD<T>,
+        optimizer: &Box<dyn Optimizer<T>>,
+    ) {
         if self.is_frozen {
             return;
         }
-        let mut cur_gradient = gradient.into_owned();
+        let input_owned = input.into_owned();
+        let mut cur_gradient = output_gradient.into_owned();
         let num_layers = self.layers.len();
         for layer_idx in (0..num_layers).rev() {
             // Chain rule to multiply current layer output.
             let mut shape_after_mean_samples = Vec::from(cur_gradient.shape());
             shape_after_mean_samples[0] = 1;
-            let gradient_mul_output = match &self.layer_outputs.borrow()[layer_idx] {
-                LayerOutput::Single(layer_output) => layer_output * &cur_gradient,
-                LayerOutput::Multiple(layer_outputs_vec) => {
-                    let layer_outputs_views =
-                        layer_outputs_vec.iter().map(|ele| ele.view()).collect();
-                    let stacked_layer_outputs_views = stack_arr_views(&layer_outputs_views);
-                    cur_gradient * stacked_layer_outputs_views
-                }
-            }
-            .mean_axis(Axis(0))
-            .unwrap()
-            .into_shape(shape_after_mean_samples)
-            .unwrap();
+            let cur_layer_output = self.layer_outputs.borrow_mut().pop().unwrap();
+            let gradient_mul_output = (cur_layer_output * &cur_gradient)
+                .mean_axis(Axis(0))
+                .unwrap()
+                .into_shape(shape_after_mean_samples)
+                .unwrap();
             // Calculate next gradient before updating layer values.
-            let next_gradient = match self.layers[layer_idx].borrow() {
-                TensorTraitObjWrapper::Basic(val) => val.backward(gradient_mul_output.view()),
-                TensorTraitObjWrapper::ForwardParallel(val) => {
-                    val.backward(gradient_mul_output.view())
-                }
+            let layer_input = if layer_idx <= 0 {
+                input_owned.clone() // TODO: bad performance
+            } else {
+                self.layer_outputs.borrow()[layer_idx - 1].clone()
             };
-            // Update matrix with current gradient.
-            let is_frozen = match self.layers[layer_idx].borrow_mut() {
-                TensorTraitObjWrapper::Basic(layer) => layer.is_frozen(),
-                TensorTraitObjWrapper::ForwardParallel(layer) => layer.is_frozen(),
-            };
-            if !is_frozen {
-                let mut original_mat = match self.layers[layer_idx].borrow_mut() {
-                    TensorTraitObjWrapper::Basic(layer) => layer.backward_updatable_mat(),
-                    TensorTraitObjWrapper::ForwardParallel(layer) => layer.backward_updatable_mat(),
+            let next_gradient =
+                match self.layers[layer_idx].borrow() {
+                    TensorTraitObjWrapper::Basic(val) => val
+                        .backward_respect_to_input(layer_input.view(), gradient_mul_output.view()),
+                    TensorTraitObjWrapper::ForwardParallel(val) => val
+                        .backward_respect_to_input(layer_input.view(), gradient_mul_output.view()),
                 };
-                optimizer.change_values(&mut original_mat, gradient_mul_output.view());
-            }
+            // Update matrix with current gradient.
+            match self.layers[layer_idx].borrow_mut() {
+                TensorTraitObjWrapper::Basic(layer) => layer.backward_update_check_frozen(
+                    layer_input.view(),
+                    next_gradient.view(),
+                    optimizer,
+                ),
+                TensorTraitObjWrapper::ForwardParallel(layer) => layer
+                    .backward_update_check_frozen(
+                        layer_input.view(),
+                        next_gradient.view(),
+                        optimizer,
+                    ),
+            };
             // Update current gradient with next gradient.
             cur_gradient = next_gradient;
         }
@@ -198,57 +190,21 @@ where
 
 fn layer_forward_helper<T>(
     layer: &TensorTraitObjWrapper<T>,
-    input: &LayerOutput<T>,
+    input: ArrayViewD<T>,
     is_parallel: bool,
-) -> LayerOutput<T>
+) -> ArrayD<T>
 where
     T: MLPFloat,
 {
     if is_parallel {
         match layer {
-            TensorTraitObjWrapper::Basic(layer) => match input {
-                LayerOutput::Single(input_arr) => {
-                    LayerOutput::Single(layer.par_forward(input_arr.view()))
-                }
-                LayerOutput::Multiple(input_vec) => {
-                    let input_view: Vec<ArrayViewD<T>> =
-                        input_vec.iter().map(|ele| ele.view()).collect();
-                    let stacked = stack_arr_views(&input_view);
-                    LayerOutput::Single(layer.par_forward(stacked.view()))
-                }
-            },
-            TensorTraitObjWrapper::ForwardParallel(layer) => match input {
-                LayerOutput::Single(input_arr) => {
-                    let thread_count = num_cpus::get();
-                    let input_view = input_arr.view();
-                    let view_sliced =
-                        split_arr_view_into_chunks_by_axis0(&input_view, thread_count);
-                    LayerOutput::Multiple(layer.par_batch_forward(&view_sliced))
-                }
-                LayerOutput::Multiple(input_vec) => {
-                    let input_view: Vec<ArrayViewD<T>> =
-                        input_vec.iter().map(|ele| ele.view()).collect();
-                    LayerOutput::Multiple(layer.par_batch_forward(&input_view))
-                }
-            },
+            TensorTraitObjWrapper::Basic(layer) => layer.par_forward(input.view()),
+            TensorTraitObjWrapper::ForwardParallel(layer) => layer.par_forward(input.view()),
         }
     } else {
-        match input {
-            LayerOutput::Single(input_arr) => LayerOutput::Single(match layer {
-                TensorTraitObjWrapper::Basic(tensor) => tensor.forward(input_arr.view()),
-                TensorTraitObjWrapper::ForwardParallel(tensor) => tensor.forward(input_arr.view()),
-            }),
-            LayerOutput::Multiple(input_vec) => {
-                let input_view: Vec<ArrayViewD<T>> =
-                    input_vec.iter().map(|ele| ele.view()).collect();
-                let stacked = stack_arr_views(&input_view);
-                LayerOutput::Single(match layer {
-                    TensorTraitObjWrapper::Basic(tensor) => tensor.forward(stacked.view()),
-                    TensorTraitObjWrapper::ForwardParallel(tensor) => {
-                        tensor.forward(stacked.view())
-                    }
-                })
-            }
+        match layer {
+            TensorTraitObjWrapper::Basic(layer) => layer.forward(input.view()),
+            TensorTraitObjWrapper::ForwardParallel(layer) => layer.forward(input.view()),
         }
     }
 }

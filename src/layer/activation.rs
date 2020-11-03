@@ -48,20 +48,28 @@ where
         self.forward_helper(input, false)
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        let mut res: ArrayD<T> = gradient.into_owned();
+    fn backward_respect_to_input(
+        &self,
+        _: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T> {
+        let mut res: ArrayD<T> = layer_output.into_owned();
         match self {
-            Self::TanH => res.par_mapv_inplace(|ele| T::one() - ele.powi(2)),
-            Self::ReLu => {
-                res.par_mapv_inplace(|ele| if ele > T::zero() { T::one() } else { T::zero() })
+            Self::TanH => {
+                res.par_mapv_inplace(|ele| T::one() - ele.powi(2));
             }
-            Self::LeakyReLu => res.par_mapv_inplace(|ele| {
-                if ele > T::zero() {
-                    T::one()
-                } else {
-                    T::one().div(T::from_f32(10f32).unwrap())
-                }
-            }),
+            Self::ReLu => {
+                res.par_mapv_inplace(|ele| if ele > T::zero() { T::one() } else { T::zero() });
+            }
+            Self::LeakyReLu => {
+                res.par_mapv_inplace(|ele| {
+                    if ele > T::zero() {
+                        T::one()
+                    } else {
+                        T::one().div(T::from_f32(10f32).unwrap())
+                    }
+                });
+            }
         };
         res
     }
@@ -146,7 +154,8 @@ mod unit_test {
         let rand_arr = arr2(&[[-1., 2.]]).into_dyn();
         let forward_res = Activation::ReLu.forward(rand_arr.view());
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
-        let backward_res = Activation::ReLu.backward(forward_res.view());
+        let backward_res =
+            Activation::ReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
         assert_eq!(backward_res, arr2(&[[0., 1.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }
@@ -165,7 +174,8 @@ mod unit_test {
         let rand_arr = Box::new(arr2(&[[-1., 2.]])).into_dyn();
         let forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let par_forward_res = Activation::LeakyReLu.forward(rand_arr.view());
-        let backward_res = Activation::LeakyReLu.backward(forward_res.view());
+        let backward_res =
+            Activation::LeakyReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
         assert_eq!(backward_res, arr2(&[[0.1, 1.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }

@@ -70,7 +70,7 @@ where
         self.forward_helper(input, false)
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
+    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 

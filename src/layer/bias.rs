@@ -1,6 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use super::super::traits::tensor_traits::Tensor;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 
@@ -20,16 +21,31 @@ where
         &input + &self.bias_arr.view()
     }
 
-    fn backward(&self, gradient: ArrayViewD<T>) -> ArrayD<T> {
-        gradient.into_owned()
-    }
-
-    fn backward_updatable_mat(&mut self) -> ArrayViewMutD<'_, T> {
-        self.bias_arr.view_mut()
+    fn backward_respect_to_input(
+        &self,
+        _: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T> {
+        Array::ones(layer_output.shape())
     }
 
     fn is_frozen(&self) -> bool {
         self.is_frozen
+    }
+
+    fn backward_update(
+        &mut self,
+        _: ArrayViewD<T>,
+        output_gradient: ArrayViewD<T>,
+        optimizer: &Box<dyn Optimizer<T>>,
+    ) {
+        let bias_gradient = output_gradient
+            .mean_axis(Axis(0))
+            .unwrap()
+            .into_shape((1, self.bias_arr.len()))
+            .unwrap()
+            .into_dyn();
+        optimizer.change_values(&mut self.bias_arr.view_mut(), bias_gradient.view());
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

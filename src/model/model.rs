@@ -1,5 +1,4 @@
 use crate::layer::chain::LayerChain;
-use crate::optimizer::gradient_descent::GradientDescent;
 use crate::traits::numerical_traits::MLPFLoatRandSampling;
 use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::{Tensor, TensorTraitObjWrapper};
@@ -41,7 +40,8 @@ where
             let forward_res = self.layer_chain.forward(asdf.view());
             assert_eq!(forward_res.shape(), expected_output.shape());
             let gradient = forward_res - &expected_output;
-            self.layer_chain.backward_update(gradient.view(), optimizer);
+            self.layer_chain
+                .backward_update_check_frozen(asdf.view(), gradient.view(), optimizer);
         }
     }
 
@@ -103,13 +103,13 @@ mod unit_test {
 
     fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
         Model::new_from_layers(vec![
-            dense!(input_size, 128),
-            bias!(128),
+            dense!(input_size, 8),
+            bias!(8),
             relu!(),
-            dense!(128, output_size),
+            dense!(8, output_size),
             bias!(output_size),
             relu!(),
-            softmax!(),
+            mse!(),
         ])
     }
 
@@ -160,7 +160,15 @@ mod unit_test {
         let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let output_data = Array::random((3, 1), Uniform::new(0., 10.)).into_dyn();
         let mut simple_dnn = generate_simple_dnn(shape[1], 1);
+        println!(
+            "Before train prediction: {:#?}",
+            simple_dnn.predict(input_data.view())
+        );
         let optimizer = Box::new(GradientDescent::new(0.01f32)) as Box<dyn Optimizer<f32>>;
-        simple_dnn.train(5, &optimizer, input_data.view(), output_data.view());
+        simple_dnn.train(2, &optimizer, input_data.view(), output_data.view());
+        println!(
+            "After train prediction: {:#?}",
+            simple_dnn.predict(input_data.view())
+        );
     }
 }
