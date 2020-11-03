@@ -52,6 +52,7 @@ impl Loss {
         T: MLPFloat,
     {
         assert_eq!(input.ndim(), 2);
+        let input = input.into_dimensionality::<Ix2>().unwrap();
         match self {
             Self::MSE => input.into_owned(),
             Self::SoftmaxCrossEntropy => {
@@ -73,6 +74,7 @@ impl Loss {
                 shifted / axis_sum
             }
         }
+        .into_dyn()
     }
 
     pub fn backward_with_respect_to_input<T>(

@@ -128,8 +128,22 @@ mod unit_test {
     }
 
     fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
-        let layers: Vec<Box<dyn Tensor<f32>>> =
-            vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
+        // let layers: Vec<Box<dyn Tensor<f32>>> =
+        //     vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
+        let layers: Vec<Box<dyn Tensor<f32>>> = vec![
+            dense!(input_size, 1024),
+            bias!(1024),
+            tanh!(),
+            dense!(1024, 512),
+            bias!(512),
+            tanh!(),
+            dense!(512, 64),
+            bias!(64),
+            tanh!(),
+            dense!(64, 2),
+            bias!(2),
+            tanh!(),
+        ];
         Model::new_from_layers(layers, softmax_cross_entropy!())
     }
 
