@@ -16,7 +16,8 @@ where
     }
 
     fn change_values(&self, old_value: &mut ArrayViewMutD<T>, gradient: ArrayViewD<T>) {
-        let diff = self.modify(gradient);
+        let gradient_mean = gradient.mean_axis(Axis(0)).unwrap();
+        let diff = self.modify(gradient_mean.view());
         let diff_view = diff.broadcast(old_value.dim()).unwrap();
         let zip = Zip::from(old_value).and(&diff_view);
         zip.apply(|old, delta| {

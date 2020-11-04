@@ -91,10 +91,10 @@ impl Loss {
         let input = input.into_dimensionality::<Ix2>().unwrap();
         let expected_output = expected_output.into_dimensionality::<Ix2>().unwrap();
         match self {
-            Self::MSE => (&expected_output - &input).into_dyn(),
+            Self::MSE => (&input - &expected_output).into_dyn(),
             Self::SoftmaxCrossEntropy => {
                 let softmax_res = self.predict(input.view().into_dyn(), should_be_parallel);
-                (&expected_output - &softmax_res).into_dyn()
+                (&softmax_res - &expected_output).into_dyn()
             }
         }
     }

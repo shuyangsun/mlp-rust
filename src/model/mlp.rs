@@ -190,15 +190,15 @@ mod unit_test {
         ])
         .into_dyn();
         let output_data = arr2(&vec![[1.0f32], [0.0f32], [-1.0f32]]).into_dyn();
-        let mut simple_dnn = MLP::new_regressor(2, 1, vec![], Activation::ReLu, true, false);
+        let mut simple_dnn = MLP::new_regressor(2, 1, vec![], Activation::ReLu, false, false);
         // let mut simple_dnn = generate_simple_dnn(2, 2);
         println!(
             "Before train prediction: {:#?}",
             simple_dnn.predict(input_data.view())
         );
         simple_dnn.train(
-            1000,
-            &gradient_descent!(0.0001f32),
+            100,
+            &gradient_descent!(0.01f32),
             input_data.view(),
             output_data.view(),
         );

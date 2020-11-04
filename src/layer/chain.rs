@@ -115,7 +115,7 @@ where
             let mut shape_after_mean_samples = Vec::from(cur_gradient.shape());
             shape_after_mean_samples[0] = 1;
             let cur_layer_output = self.layer_outputs.borrow_mut().pop().unwrap();
-            let gradient_mul_output = cur_layer_output * &cur_gradient.mean_axis(Axis(0)).unwrap();
+            let gradient_mul_output = cur_layer_output * &cur_gradient;
             // Calculate next gradient before updating layer values.
             let layer_input = if layer_idx <= 0 {
                 input_owned.clone() // TODO: bad performance
