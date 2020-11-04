@@ -70,11 +70,13 @@ where
         for i in 0..max_num_iter {
             let forward_res = self.layer_chain.forward(input_clone.view());
             assert_eq!(forward_res.shape(), expected_output_clone.shape());
-            let gradient = self.loss_function.backward_with_respect_to_input(
+            let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
+            let mut gradient = self.loss_function.backward_with_respect_to_input(
                 forward_res.view(),
                 expected_output_clone.view(),
                 true,
             );
+            gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
             println!(
                 "Iter {}: loss={}",
                 i,
@@ -82,7 +84,7 @@ where
                     forward_res.view(),
                     expected_output_clone.view(),
                     true
-                )
+                ) + l2_reg_cost
             );
             self.layer_chain.backward_update_check_frozen(
                 input_clone.view(),

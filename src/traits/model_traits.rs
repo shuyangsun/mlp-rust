@@ -1,11 +1,7 @@
-use crate::traits::numerical_traits::MLPFloat;
 use crate::traits::optimizer_traits::Optimizer;
 use ndarray::{ArrayD, ArrayViewD};
 
-pub trait Model<T>
-where
-    T: MLPFloat,
-{
+pub trait Model<T> {
     fn train(
         &mut self,
         max_num_iter: usize,

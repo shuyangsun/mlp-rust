@@ -1,7 +1,5 @@
-use crate::traits::numerical_traits::MLPFloat;
-use crate::traits::optimizer_traits::Optimizer;
-use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
+use crate::{Dense, MLPFloat, Optimizer, Tensor};
 use ndarray::prelude::*;
 use std::cell::RefCell;
 
@@ -44,6 +42,22 @@ where
 
     pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, false, true)
+    }
+
+    pub fn dense_l2_sum(&self) -> T {
+        let all_sums: Vec<T> = self
+            .layers
+            .iter()
+            .map(|layer| match layer.downcast_ref::<Dense<T>>() {
+                Some(val) => val.weight_view_2d().mapv(|ele| ele * ele).sum(),
+                None => T::zero(),
+            })
+            .collect();
+        let mut res = T::zero();
+        for val in all_sums {
+            res = res + val;
+        }
+        res
     }
 
     fn forward_helper(
