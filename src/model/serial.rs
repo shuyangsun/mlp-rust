@@ -1,20 +1,21 @@
 use crate::layer::chain::LayerChain;
 use crate::loss::loss::Loss;
-use crate::traits::numerical_traits::MLPFLoatRandSampling;
+use crate::traits::model_traits::Model;
+use crate::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use crate::traits::optimizer_traits::Optimizer;
 use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
 use ndarray::{ArrayD, ArrayViewD};
 
-pub struct Model<T>
+pub struct Serial<T>
 where
-    T: MLPFLoatRandSampling,
+    T: MLPFloat,
 {
     layer_chain: LayerChain<T>,
     loss_function: Loss,
 }
 
-impl<T> Model<T>
+impl<T> Serial<T>
 where
     T: MLPFLoatRandSampling,
 {
@@ -35,7 +36,28 @@ where
         }
     }
 
-    pub fn train(
+    pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
+        self.layer_chain.push(layer);
+    }
+
+    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layers: I) {
+        self.layer_chain.push_all(layers)
+    }
+
+    pub fn num_param(&self) -> CounterEst<usize> {
+        self.layer_chain.num_parameters()
+    }
+
+    pub fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        self.layer_chain.num_operations_per_forward()
+    }
+}
+
+impl<T> Model<T> for Serial<T>
+where
+    T: MLPFloat,
+{
+    fn train(
         &mut self,
         max_num_iter: usize,
         optimizer: &Box<dyn Optimizer<T>>,
@@ -70,28 +92,12 @@ where
         }
     }
 
-    pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
-        self.layer_chain.push(layer);
-    }
-
-    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layers: I) {
-        self.layer_chain.push_all(layers)
-    }
-
-    pub fn num_param(&self) -> CounterEst<usize> {
-        self.layer_chain.num_parameters()
-    }
-
-    pub fn num_operations_per_forward(&self) -> CounterEst<usize> {
-        self.layer_chain.num_operations_per_forward()
-    }
-
-    pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.loss_function
             .predict(self.layer_chain.predict(input).view(), false)
     }
 
-    pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.loss_function
             .predict(self.layer_chain.par_predict(input.into_dyn()).view(), true)
     }
@@ -100,14 +106,12 @@ where
 #[cfg(test)]
 mod unit_test {
     use crate::prelude::*;
-    use crate::Model;
     extern crate ndarray;
-    use crate::traits::tensor_traits::Tensor;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
 
-    fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> Model<f32> {
+    fn generate_stress_dnn_classifier(input_size: usize, output_size: usize) -> Serial<f32> {
         let layers: Vec<Box<dyn Tensor<f32>>> = vec![
             dense!(input_size, 4096),
             bias!(4096),
@@ -124,10 +128,10 @@ mod unit_test {
             dense!(500, output_size),
             bias!(output_size),
         ];
-        Model::new_from_layers(layers, softmax_cross_entropy!())
+        Serial::new_from_layers(layers, softmax_cross_entropy!())
     }
 
-    fn generate_simple_dnn(input_size: usize, output_size: usize) -> Model<f32> {
+    fn generate_simple_dnn(input_size: usize, output_size: usize) -> Serial<f32> {
         // let layers: Vec<Box<dyn Tensor<f32>>> =
         //     vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
         let layers: Vec<Box<dyn Tensor<f32>>> = vec![
@@ -144,7 +148,7 @@ mod unit_test {
             bias!(output_size),
             relu!(),
         ];
-        Model::new_from_layers(layers, softmax_cross_entropy!())
+        Serial::new_from_layers(layers, softmax_cross_entropy!())
     }
 
     #[test]
@@ -161,7 +165,7 @@ mod unit_test {
             dense!(64, 1),
             bias!(1),
         ];
-        let simple_dnn = Model::new_from_layers(layers, mse!());
+        let simple_dnn = Serial::new_from_layers(layers, mse!());
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[3usize, 1usize]);
@@ -193,15 +197,15 @@ mod unit_test {
         // let input_data =
         //     arr2(&vec![[0.1f32, 0.5f32], [0.7f32, 0.2f32], [5.0f32, -0.1f32]]).into_dyn();
         let input_data = arr2(&vec![
-            [0.0f32, 0.05f32],
-            [0.14f32, 0.1f32],
-            [-2.0f32, 7.5f32],
+            [0.5f32, 0.05f32],
+            [0.0f32, 0.0f32],
+            [-0.5f32, -0.5f32],
         ])
         .into_dyn();
         // let output_data = arr2(&vec![[0f32, 1f32], [1f32, 0f32], [1f32, 0f32]]).into_dyn();
-        let output_data = arr2(&vec![[0.5f32], [1.5f32], [5.5f32]]).into_dyn();
+        let output_data = arr2(&vec![[1.0f32], [0.0f32], [-1.0f32]]).into_dyn();
         let layers: Vec<Box<dyn Tensor<f32>>> = vec![dense!(2, 1), bias!(1)];
-        let mut simple_dnn = Model::new_from_layers(layers, mse!());
+        let mut simple_dnn = Serial::new_from_layers(layers, mse!());
         // let mut simple_dnn = generate_simple_dnn(2, 2);
         println!(
             "Before train prediction: {:#?}",

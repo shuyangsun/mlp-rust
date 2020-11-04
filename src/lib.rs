@@ -6,4 +6,4 @@ pub mod prelude;
 mod traits;
 mod utility;
 
-pub use self::model::model::Model;
+pub use self::model::serial::Serial;
