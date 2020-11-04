@@ -1,5 +1,6 @@
 extern crate ndarray;
 use crate::traits::numerical_traits::MLPFloat;
+use crate::utility::math::to_2d_view;
 use ndarray::prelude::*;
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
@@ -21,8 +22,8 @@ impl Loss {
     {
         assert_eq!(input.ndim(), 2);
         assert_eq!(expected_output.ndim(), 2);
-        let input = input.into_dimensionality::<Ix2>().unwrap();
-        let expected_output = expected_output.into_dimensionality::<Ix2>().unwrap();
+        let input = to_2d_view(input);
+        let expected_output = to_2d_view(expected_output);
         match self {
             Self::MSE => {
                 let mut diff = &expected_output - &input;
@@ -52,7 +53,7 @@ impl Loss {
         T: MLPFloat,
     {
         assert_eq!(input.ndim(), 2);
-        let input = input.into_dimensionality::<Ix2>().unwrap();
+        let input = to_2d_view(input);
         match self {
             Self::MSE => input.into_owned(),
             Self::SoftmaxCrossEntropy => {
@@ -88,8 +89,8 @@ impl Loss {
     {
         assert_eq!(input.ndim(), 2);
         assert_eq!(expected_output.ndim(), 2);
-        let input = input.into_dimensionality::<Ix2>().unwrap();
-        let expected_output = expected_output.into_dimensionality::<Ix2>().unwrap();
+        let input = to_2d_view(input);
+        let expected_output = to_2d_view(expected_output);
         match self {
             Self::MSE => (&input - &expected_output).into_dyn(),
             Self::SoftmaxCrossEntropy => {

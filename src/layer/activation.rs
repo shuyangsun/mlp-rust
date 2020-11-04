@@ -60,12 +60,12 @@ where
                 res.par_mapv_inplace(|ele| T::one() - ele.powi(2));
             }
             Self::ReLu => {
-                res.par_mapv_inplace(|ele| if ele > T::zero() { T::one() } else { T::zero() });
+                res.par_mapv_inplace(|ele| if ele > T::zero() { ele } else { T::zero() });
             }
             Self::LeakyReLu => {
                 res.par_mapv_inplace(|ele| {
                     if ele > T::zero() {
-                        T::one()
+                        ele
                     } else {
                         T::one().div(T::from_u32(10).unwrap())
                     }
@@ -151,7 +151,7 @@ mod unit_test {
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
         let backward_res =
             Activation::ReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
-        assert_eq!(backward_res, arr2(&[[0., 1.]]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0., 2.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }
 
@@ -171,7 +171,7 @@ mod unit_test {
         let par_forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let backward_res =
             Activation::LeakyReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
-        assert_eq!(backward_res, arr2(&[[0.1, 1.]]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0.1, 2.]]).into_dyn());
         assert_eq!(forward_res, par_forward_res);
     }
 }

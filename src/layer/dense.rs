@@ -1,7 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
 use super::super::traits::tensor_traits::Tensor;
-use super::super::utility::linalg;
+use super::super::utility::{linalg::mat_mul, linalg::par_mat_mul, math::to_2d_view};
 use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
@@ -21,11 +21,7 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        linalg::mat_mul(
-            &input.into_dimensionality::<Ix2>().unwrap(),
-            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
-        )
-        .into_dyn()
+        mat_mul(&to_2d_view(input), &self.weight_mat_2d_view()).into_dyn()
     }
 
     fn backward_respect_to_input(
@@ -33,24 +29,11 @@ where
         _: ArrayViewD<T>,
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
-        linalg::par_mat_mul(
-            &layer_output.into_dimensionality::<Ix2>().unwrap(),
-            &self
-                .weight_mat
-                .view()
-                .into_dimensionality::<Ix2>()
-                .unwrap()
-                .t(),
-        )
-        .into_dyn()
+        par_mat_mul(&to_2d_view(layer_output), &self.weight_mat_2d_view().t()).into_dyn()
     }
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        linalg::par_mat_mul(
-            &input.into_dimensionality::<Ix2>().unwrap(),
-            &self.weight_mat.view().into_dimensionality::<Ix2>().unwrap(),
-        )
-        .into_dyn()
+        par_mat_mul(&to_2d_view(input), &self.weight_mat_2d_view()).into_dyn()
     }
 
     fn is_frozen(&self) -> bool {
@@ -63,11 +46,8 @@ where
         output_gradient: ArrayViewD<T>, // m x n2
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
-        let weight_gradient = linalg::mat_mul(
-            &input.into_dimensionality::<Ix2>().unwrap().t(),
-            &output_gradient.into_dimensionality::<Ix2>().unwrap(),
-        )
-        .into_dyn();
+        let weight_gradient =
+            mat_mul(&to_2d_view(input).t(), &to_2d_view(output_gradient)).into_dyn();
         optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
     }
 
@@ -77,6 +57,15 @@ where
 
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::Accurate(self.weight_mat.len() * 2 - self.weight_mat.shape()[0])
+    }
+}
+
+impl<T> Dense<T>
+where
+    T: MLPFloat,
+{
+    pub fn weight_mat_2d_view(&self) -> ArrayView2<T> {
+        to_2d_view(self.weight_mat.view())
     }
 }
 
