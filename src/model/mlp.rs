@@ -44,7 +44,7 @@ where
         Self { serial_model }
     }
 
-    fn new_classifier<I: IntoIterator<Item = usize>>(
+    pub fn new_classifier<I: IntoIterator<Item = usize>>(
         input_size: usize,
         output_size: usize,
         hidden_layer_sizes: I,
@@ -63,7 +63,7 @@ where
         )
     }
 
-    fn new_regressor<I: IntoIterator<Item = usize>>(
+    pub fn new_regressor<I: IntoIterator<Item = usize>>(
         input_size: usize,
         output_size: usize,
         hidden_layer_sizes: I,
