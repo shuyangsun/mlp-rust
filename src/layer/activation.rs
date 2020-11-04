@@ -4,6 +4,7 @@ use super::super::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
 use ndarray::prelude::*;
 
+#[derive(Clone)]
 pub enum Activation {
     TanH,
     ReLu,
