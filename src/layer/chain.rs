@@ -76,7 +76,7 @@ where
         }
     }
 
-    pub fn get_dense_mat_ref(&self) -> Vec<ArrayViewD<T>> {
+    fn get_dense_mat_ref(&self) -> Vec<ArrayViewD<T>> {
         self.layers
             .iter()
             .filter(|layer| match layer.downcast_ref::<Dense<T>>() {

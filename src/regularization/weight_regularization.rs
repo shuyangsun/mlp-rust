@@ -45,6 +45,6 @@ where
         for val in all_sums {
             res = res + val;
         }
-        self.lambda * res
+        res
     }
 }
