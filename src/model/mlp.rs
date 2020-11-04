@@ -1,18 +1,17 @@
 use crate::{
     batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, Dense,
-    InputNormalization, Loss, LossKind, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Serial,
-    Tensor,
+    InputNormalization, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Serial, Tensor,
 };
 use ndarray::{ArrayD, ArrayViewD};
 
-pub struct MLP<'a, T>
+pub struct MLP<T>
 where
     T: MLPFloat,
 {
-    serial_model: Serial<'a, T>,
+    serial_model: Serial<T>,
 }
 
-impl<'a, T> MLP<'a, T>
+impl<T> MLP<T>
 where
     T: MLPFLoatRandSampling,
 {
@@ -23,7 +22,7 @@ where
         activation_function: Activation,
         should_normalize_input: bool,
         should_use_batch_norm: bool, // TODO: change to enums
-        loss: LossKind,
+        loss: Loss,
     ) -> Self {
         let mut layers: Vec<Box<dyn Tensor<T>>> = Vec::new();
         if should_normalize_input {
@@ -41,7 +40,7 @@ where
         }
         layers.push(dense!(last_layer_size, output_size));
         layers.push(bias!(output_size));
-        let serial_model = Serial::new_from_layers(layers, Loss::new(loss));
+        let serial_model = Serial::new_from_layers(layers, loss);
         Self { serial_model }
     }
 
@@ -60,7 +59,7 @@ where
             activation_function,
             should_normalize_input,
             should_use_batch_norm,
-            LossKind::SoftmaxCrossEntropy,
+            Loss::SoftmaxCrossEntropy,
         )
     }
 
@@ -79,12 +78,12 @@ where
             activation_function,
             should_normalize_input,
             should_use_batch_norm,
-            LossKind::MSE,
+            Loss::MSE,
         )
     }
 }
 
-impl<'a, T> Model<T> for MLP<'a, T>
+impl<T> Model<T> for MLP<T>
 where
     T: MLPFloat,
 {
@@ -116,7 +115,7 @@ mod unit_test {
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
 
-    fn generate_stress_mlp_classifier<'a>(input_size: usize, output_size: usize) -> MLP<'a, f32> {
+    fn generate_stress_mlp_classifier(input_size: usize, output_size: usize) -> MLP<f32> {
         MLP::new_classifier(
             input_size,
             output_size,
@@ -127,7 +126,7 @@ mod unit_test {
         )
     }
 
-    fn generate_simple_mlp_regressor<'a>(input_size: usize) -> MLP<'a, f32> {
+    fn generate_simple_mlp_regressor(input_size: usize) -> MLP<f32> {
         // let layers: Vec<Box<dyn Tensor<f32>>> =
         //     vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
         MLP::new_regressor(

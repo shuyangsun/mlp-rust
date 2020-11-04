@@ -50,15 +50,15 @@ where
     assert!(arr.ndim() > 0);
     let mut res: Vec<ArrayView<'a, T, D>> = Vec::new();
     let nrows = arr.shape()[0];
-    let mut num_sample_per_chunk = std::cmp::max(nrows / num_chunks, 1);
+    let mut num_sample_per_thread = std::cmp::max(nrows / num_chunks, 1);
     if nrows > num_chunks && nrows % num_chunks > 0 {
-        num_sample_per_chunk += 1;
+        num_sample_per_thread += 1;
     }
     for i in 0..num_chunks {
-        let lower_idx = i * num_sample_per_chunk;
-        let upper_idx = std::cmp::min(lower_idx + num_sample_per_chunk, nrows);
+        let lower_idx = i * num_sample_per_thread;
+        let upper_idx = std::cmp::min(lower_idx + num_sample_per_thread, nrows);
         res.push(arr.slice_axis(Axis(0), Slice::from(lower_idx..upper_idx)));
-        if lower_idx + num_sample_per_chunk >= nrows {
+        if lower_idx + num_sample_per_thread >= nrows {
             break;
         }
     }

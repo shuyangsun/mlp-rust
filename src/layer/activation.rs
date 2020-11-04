@@ -57,7 +57,7 @@ where
         let mut res: ArrayD<T> = layer_output.into_owned();
         match self {
             Self::TanH => {
-                res.par_mapv_inplace(|ele| T::one() - ele * ele);
+                res.par_mapv_inplace(|ele| T::one() - ele.powi(2));
             }
             Self::ReLu => {
                 res.par_mapv_inplace(|ele| if ele > T::zero() { ele } else { T::zero() });

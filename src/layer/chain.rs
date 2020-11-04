@@ -1,5 +1,7 @@
+use crate::traits::numerical_traits::MLPFloat;
+use crate::traits::optimizer_traits::Optimizer;
+use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
-use crate::{Dense, MLPFloat, Optimizer, Tensor};
 use ndarray::prelude::*;
 use std::cell::RefCell;
 
@@ -74,22 +76,6 @@ where
         } else {
             outputs.pop().unwrap()
         }
-    }
-
-    fn get_dense_mat_ref(&self) -> Vec<ArrayViewD<T>> {
-        self.layers
-            .iter()
-            .filter(|layer| match layer.downcast_ref::<Dense<T>>() {
-                Some(_) => true,
-                None => false,
-            })
-            .map(|ele| {
-                ele.downcast_ref::<Dense<T>>()
-                    .unwrap()
-                    .weight_view_2d()
-                    .into_dyn()
-            })
-            .collect()
     }
 }
 

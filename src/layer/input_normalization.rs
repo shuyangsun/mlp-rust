@@ -27,9 +27,9 @@ where
         let mean = input.mean_axis(Axis(0)).unwrap();
         let mut variance: ArrayD<T> = (&input - &mean.view()).into_dimensionality().unwrap();
         if is_parallel {
-            variance.par_mapv_inplace(|ele| ele * ele);
+            variance.par_mapv_inplace(|ele| ele.powi(2));
         } else {
-            variance.mapv_inplace(|ele| ele * ele);
+            variance.mapv_inplace(|ele| ele.powi(2));
         }
         variance = variance.mean_axis(Axis(0)).unwrap();
         self.update_last_min(mean);

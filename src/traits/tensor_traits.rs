@@ -1,10 +1,13 @@
 extern crate ndarray;
+use super::numerical_traits::MLPFloat;
 use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
-use downcast_rs::{impl_downcast, Downcast};
 use ndarray::prelude::*;
 
-pub trait Tensor<T>: Downcast {
+pub trait Tensor<T>
+where
+    T: MLPFloat,
+{
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
     fn backward_respect_to_input(
         &self,
@@ -49,5 +52,3 @@ pub trait Tensor<T>: Downcast {
         CounterEst::None
     }
 }
-
-impl_downcast!(Tensor<T>);

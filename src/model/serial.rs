@@ -7,19 +7,19 @@ use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
 use ndarray::{ArrayD, ArrayViewD};
 
-pub struct Serial<'a, T>
+pub struct Serial<T>
 where
     T: MLPFloat,
 {
     layer_chain: LayerChain<T>,
-    loss_function: Loss<'a, T>,
+    loss_function: Loss,
 }
 
-impl<'a, T> Serial<'a, T>
+impl<T> Serial<T>
 where
     T: MLPFLoatRandSampling,
 {
-    pub fn new(loss_function: Loss<'a, T>) -> Self {
+    pub fn new(loss_function: Loss) -> Self {
         Self {
             layer_chain: LayerChain::new(),
             loss_function,
@@ -28,7 +28,7 @@ where
 
     pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
         layers: I,
-        loss_function: Loss<'a, T>,
+        loss_function: Loss,
     ) -> Self {
         Self {
             layer_chain: LayerChain::new_from_sublayers(layers),
@@ -53,7 +53,7 @@ where
     }
 }
 
-impl<'a, T> Model<T> for Serial<'a, T>
+impl<T> Model<T> for Serial<T>
 where
     T: MLPFloat,
 {
