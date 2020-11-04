@@ -34,7 +34,6 @@ where
         variance = variance.mean_axis(Axis(0)).unwrap();
         self.update_last_min(mean);
         self.update_last_variance(variance);
-        println!("ASDF {}", self.last_min.borrow().as_ref().unwrap());
 
         if self.moving_min.borrow().is_none() {
             *self.moving_batch_size.borrow_mut() = input.shape()[0];
@@ -61,7 +60,7 @@ where
     }
 
     fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!() // Should not be ran since it's only on the input layer
+        unimplemented!() // Should not be ran since it's only on the input layer.
     }
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {

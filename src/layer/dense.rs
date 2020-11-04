@@ -33,7 +33,7 @@ where
         _: ArrayViewD<T>,
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
-        linalg::mat_mul(
+        linalg::par_mat_mul(
             &layer_output.into_dimensionality::<Ix2>().unwrap(),
             &self
                 .weight_mat
@@ -132,25 +132,14 @@ mod unit_test {
 
     #[test]
     fn test_weights_forward_rand_1() {
-        let shape = [1024, 100];
+        let shape = [997, 100]; // 997 is a prime number, testing parallel splitting.
+        let output_size = 50;
         let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let weights = Dense::new_random_uniform(100, 50);
+        let weights = Dense::new_random_uniform(shape[1], output_size);
         let forward_res = weights.forward(rand_arr.view());
         let par_forward_res = weights.par_forward(rand_arr.view());
         assert_eq!(forward_res.ndim(), 2usize);
-        assert_eq!(forward_res.shape(), &[1024usize, 50usize]);
-        assert_eq!(forward_res, par_forward_res);
-    }
-
-    #[test]
-    fn test_weights_forward_rand_2() {
-        let shape = [997, 100];
-        let rand_arr = &Array::random(shape, Uniform::new(0., 10.)).into_dyn();
-        let weights = Dense::new_random_uniform(100, 50);
-        let forward_res = weights.forward(rand_arr.view());
-        let par_forward_res = weights.par_forward(rand_arr.view());
-        assert_eq!(forward_res.ndim(), 2usize);
-        assert_eq!(forward_res.shape(), &[997usize, 50usize]);
+        assert_eq!(forward_res.shape(), &[shape[0], output_size]);
         assert_eq!(forward_res, par_forward_res);
     }
 }
