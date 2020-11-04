@@ -122,16 +122,17 @@ where
             } else {
                 self.layer_outputs.borrow()[layer_idx - 1].clone()
             };
-            let next_gradient = self.layers[layer_idx]
-                .backward_respect_to_input(layer_input.view(), gradient_mul_output.view());
+            // Update current gradient with next gradient.
+            if layer_idx > 0 {
+                cur_gradient = self.layers[layer_idx]
+                    .backward_respect_to_input(layer_input.view(), gradient_mul_output.view());
+            }
             // Update matrix with current gradient.
             self.layers[layer_idx].backward_update_check_frozen(
                 layer_input.view(),
                 gradient_mul_output.view(),
                 optimizer,
             );
-            // Update current gradient with next gradient.
-            cur_gradient = next_gradient;
         }
     }
 

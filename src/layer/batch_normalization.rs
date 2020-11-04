@@ -41,13 +41,11 @@ where
 
         if self.moving_mean.borrow().is_none() {
             *self.moving_batch_size.borrow_mut() = input.shape()[0];
-            self.moving_mean
-                .borrow_mut()
-                .get_or_insert(self.last_mean.borrow().as_ref().unwrap().clone());
+            *self.moving_mean.borrow_mut() =
+                Some(self.last_mean.borrow().as_ref().unwrap().clone());
             // Assuming moving variance is None as well.
-            self.moving_variance
-                .borrow_mut()
-                .get_or_insert(self.last_variance.borrow().as_ref().unwrap().clone());
+            *self.moving_variance.borrow_mut() =
+                Some(self.last_variance.borrow().as_ref().unwrap().clone());
         }
 
         let mut std_stable = self.last_variance.borrow().as_ref().unwrap().clone();
@@ -118,12 +116,12 @@ where
 
     fn update_last_mean(&self, mean: ArrayD<T>) {
         assert_eq!(mean.len(), self.size);
-        self.last_mean.borrow_mut().get_or_insert(mean);
+        *self.last_mean.borrow_mut() = Some(mean);
     }
 
     fn update_last_variance(&self, variance: ArrayD<T>) {
         assert_eq!(variance.len(), self.size);
-        self.last_variance.borrow_mut().get_or_insert(variance);
+        *self.last_variance.borrow_mut() = Some(variance);
     }
 }
 
