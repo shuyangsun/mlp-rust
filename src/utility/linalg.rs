@@ -27,20 +27,6 @@ where
     par_arr_operation(&lhs, |lhs_sub: &ArrayView2<T>| mat_mul(lhs_sub, &rhs))
 }
 
-pub fn calculate_std_from_variance<T>(variance: &ArrayD<T>, should_be_parallel: bool) -> ArrayD<T>
-where
-    T: MLPFloat,
-{
-    let eps = T::from_f32(std::f32::EPSILON).unwrap();
-    let mut std_stable = variance.clone();
-    if should_be_parallel {
-        std_stable.par_mapv_inplace(|ele| (ele + eps).sqrt());
-    } else {
-        std_stable.mapv_inplace(|ele| (ele + eps).sqrt());
-    }
-    std_stable
-}
-
 fn par_arr_operation<'a, T, D, F>(arr_view: &'a ArrayView<T, D>, operation: F) -> Array<T, D>
 where
     T: Copy + Send + Sync,

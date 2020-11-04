@@ -1,7 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::Tensor;
-use crate::utility::counter::CounterEst;
+use crate::utility::{counter::CounterEst, math::tanh_safe};
 use ndarray::prelude::*;
 
 #[derive(Clone)]
@@ -19,17 +19,13 @@ impl Activation {
     {
         let mut res: ArrayD<T> = input.into_owned();
         let closure_fn: fn(T) -> T = match self {
-            Self::TanH => |ele: T| {
-                let plus = ele.exp();
-                let minus = (-ele).exp();
-                (plus - minus).div(plus + minus)
-            },
+            Self::TanH => |ele: T| tanh_safe(&ele),
             Self::ReLu => |ele: T| ele.max(T::zero()),
             Self::LeakyReLu => |ele: T| {
                 if ele > T::zero() {
                     ele
                 } else {
-                    ele.div(T::from_f32(10f32).unwrap())
+                    ele.div(T::from_u32(10).unwrap())
                 }
             },
         };
@@ -71,7 +67,7 @@ where
                     if ele > T::zero() {
                         T::one()
                     } else {
-                        T::one().div(T::from_f32(10f32).unwrap())
+                        T::one().div(T::from_u32(10).unwrap())
                     }
                 });
             }

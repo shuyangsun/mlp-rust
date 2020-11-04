@@ -1,7 +1,7 @@
 extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::Tensor;
-use crate::utility::{counter::CounterEst, linalg::calculate_std_from_variance};
+use crate::utility::{counter::CounterEst, math::calculate_std_from_variance};
 use ndarray::prelude::*;
 use std::cell::RefCell;
 
