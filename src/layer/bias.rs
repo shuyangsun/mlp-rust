@@ -18,7 +18,8 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        &input + &self.bias_arr.view()
+        let bias_arr_broadcasted_view = self.bias_arr.broadcast(input.dim()).unwrap();
+        &input + &bias_arr_broadcasted_view
     }
 
     fn backward_respect_to_input(
@@ -26,7 +27,7 @@ where
         _: ArrayViewD<T>,
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
-        Array::ones(layer_output.shape())
+        layer_output.into_owned()
     }
 
     fn is_frozen(&self) -> bool {

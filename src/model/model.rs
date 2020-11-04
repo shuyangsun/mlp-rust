@@ -131,18 +131,18 @@ mod unit_test {
         // let layers: Vec<Box<dyn Tensor<f32>>> =
         //     vec![dense!(input_size, output_size), bias!(output_size), tanh!()];
         let layers: Vec<Box<dyn Tensor<f32>>> = vec![
-            dense!(input_size, 1024),
-            bias!(1024),
-            tanh!(),
-            dense!(1024, 512),
-            bias!(512),
-            tanh!(),
-            dense!(512, 64),
+            dense!(input_size, 64),
             bias!(64),
-            tanh!(),
-            dense!(64, 2),
-            bias!(2),
-            tanh!(),
+            relu!(),
+            dense!(64, 32),
+            bias!(32),
+            relu!(),
+            dense!(32, 8),
+            bias!(8),
+            relu!(),
+            dense!(8, output_size),
+            bias!(output_size),
+            relu!(),
         ];
         Model::new_from_layers(layers, softmax_cross_entropy!())
     }
@@ -190,17 +190,26 @@ mod unit_test {
 
     #[test]
     fn test_model_train() {
-        let input_data =
-            arr2(&vec![[0.1f32, 0.5f32], [0.7f32, 0.2f32], [5.0f32, -0.1f32]]).into_dyn();
-        let output_data = arr2(&vec![[0f32, 1f32], [1f32, 0f32], [1f32, 0f32]]).into_dyn();
-        let mut simple_dnn = generate_simple_dnn(2, 2);
+        // let input_data =
+        //     arr2(&vec![[0.1f32, 0.5f32], [0.7f32, 0.2f32], [5.0f32, -0.1f32]]).into_dyn();
+        let input_data = arr2(&vec![
+            [0.0f32, 0.05f32],
+            [0.14f32, 0.1f32],
+            [-2.0f32, 7.5f32],
+        ])
+        .into_dyn();
+        // let output_data = arr2(&vec![[0f32, 1f32], [1f32, 0f32], [1f32, 0f32]]).into_dyn();
+        let output_data = arr2(&vec![[0.5f32], [1.5f32], [5.5f32]]).into_dyn();
+        let layers: Vec<Box<dyn Tensor<f32>>> = vec![dense!(2, 1), bias!(1)];
+        let mut simple_dnn = Model::new_from_layers(layers, mse!());
+        // let mut simple_dnn = generate_simple_dnn(2, 2);
         println!(
             "Before train prediction: {:#?}",
             simple_dnn.predict(input_data.view())
         );
         simple_dnn.train(
-            100,
-            &gradient_descent!(0.005f32),
+            1000,
+            &gradient_descent!(0.0001f32),
             input_data.view(),
             output_data.view(),
         );
