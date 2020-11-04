@@ -21,7 +21,7 @@ where
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        mat_mul(&to_2d_view(input), &self.weight_mat_2d_view()).into_dyn()
+        mat_mul(&to_2d_view(input), &self.weight_view_2d()).into_dyn()
     }
 
     fn backward_respect_to_input(
@@ -29,11 +29,11 @@ where
         _: ArrayViewD<T>,
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
-        par_mat_mul(&to_2d_view(layer_output), &self.weight_mat_2d_view().t()).into_dyn()
+        par_mat_mul(&to_2d_view(layer_output), &self.weight_view_2d().t()).into_dyn()
     }
 
     fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        par_mat_mul(&to_2d_view(input), &self.weight_mat_2d_view()).into_dyn()
+        par_mat_mul(&to_2d_view(input), &self.weight_view_2d()).into_dyn()
     }
 
     fn is_frozen(&self) -> bool {
@@ -64,7 +64,7 @@ impl<T> Dense<T>
 where
     T: MLPFloat,
 {
-    pub fn weight_mat_2d_view(&self) -> ArrayView2<T> {
+    pub fn weight_view_2d(&self) -> ArrayView2<T> {
         to_2d_view(self.weight_mat.view())
     }
 }
