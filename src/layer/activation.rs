@@ -1,8 +1,6 @@
-extern crate ndarray;
-use super::super::traits::numerical_traits::MLPFloat;
-use super::super::traits::tensor_traits::Tensor;
 use crate::utility::{counter::CounterEst, math::tanh_safe};
-use ndarray::prelude::*;
+use crate::{MLPFloat, Tensor};
+use ndarray::prelude::{Array, ArrayView};
 
 #[derive(Clone)]
 pub enum Activation {
@@ -13,11 +11,11 @@ pub enum Activation {
 }
 
 impl Activation {
-    fn forward_helper<T>(&self, input: ArrayViewD<T>, is_parallel: bool) -> ArrayD<T>
+    fn forward_helper<T, D>(&self, input: ArrayView<T, D>, is_parallel: bool) -> Array<T, D>
     where
         T: MLPFloat,
     {
-        let mut res: ArrayD<T> = input.into_owned();
+        let mut res = input.into_owned();
         let closure_fn: fn(T) -> T = match self {
             Self::TanH => |ele: T| tanh_safe(&ele),
             Self::ReLu => |ele: T| ele.max(T::zero()),
@@ -51,10 +49,10 @@ where
 
     fn backward_respect_to_input(
         &self,
-        layer_input: ArrayView<T, D>,
+        _: ArrayView<T, D>,
         layer_output: ArrayView<T, D>,
     ) -> Array<T, D> {
-        let mut res: ArrayD<T> = layer_output.into_owned();
+        let mut res = layer_output.into_owned();
         match self {
             Self::TanH => {
                 res.par_mapv_inplace(|ele| T::one() - ele.powi(2));
@@ -127,17 +125,17 @@ mod unit_test {
 
     #[test]
     fn test_relu_forward() {
-        let rand_arr = arr2(&[[-1., 2.]]).into_dyn();
+        let rand_arr = arr2(&[[-1., 2.]]);
         let forward_res = Activation::ReLu.forward(rand_arr.view());
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
-        assert_eq!(forward_res, arr2(&[[0., 2.]]).into_dyn());
+        assert_eq!(forward_res, arr2(&[[0., 2.]]));
         assert_eq!(forward_res, par_forward_res);
     }
 
     #[test]
     fn test_relu_forward_random_arr() {
         let shape = [2, 5];
-        let rand_arr = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
+        let rand_arr = Array::random(shape, Uniform::new(0., 10.));
         let forward_res = Activation::ReLu.forward(rand_arr.view());
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
         assert_eq!(forward_res.shape(), &shape);
@@ -146,32 +144,32 @@ mod unit_test {
 
     #[test]
     fn test_relu_backward() {
-        let rand_arr = arr2(&[[-1., 2.]]).into_dyn();
+        let rand_arr = arr2(&[[-1., 2.]]);
         let forward_res = Activation::ReLu.forward(rand_arr.view());
         let par_forward_res = Activation::ReLu.forward(rand_arr.view());
         let backward_res =
             Activation::ReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
-        assert_eq!(backward_res, arr2(&[[0., 2.]]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0., 2.]]));
         assert_eq!(forward_res, par_forward_res);
     }
 
     #[test]
     fn test_leaky_relu_forward() {
-        let rand_arr = Box::new(arr2(&[[-1., 2.]])).into_dyn();
+        let rand_arr = Box::new(arr2(&[[-1., 2.]]));
         let forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let par_forward_res = Activation::LeakyReLu.forward(rand_arr.view());
-        assert_eq!(forward_res, arr2(&[[-0.1, 2.]]).into_dyn());
+        assert_eq!(forward_res, arr2(&[[-0.1, 2.]]));
         assert_eq!(forward_res, par_forward_res);
     }
 
     #[test]
     fn test_leaky_relu_backward() {
-        let rand_arr = Box::new(arr2(&[[-1., 2.]])).into_dyn();
+        let rand_arr = Box::new(arr2(&[[-1., 2.]]));
         let forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let par_forward_res = Activation::LeakyReLu.forward(rand_arr.view());
         let backward_res =
             Activation::LeakyReLu.backward_respect_to_input(rand_arr.view(), forward_res.view());
-        assert_eq!(backward_res, arr2(&[[0.1, 2.]]).into_dyn());
+        assert_eq!(backward_res, arr2(&[[0.1, 2.]]));
         assert_eq!(forward_res, par_forward_res);
     }
 }
