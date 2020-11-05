@@ -1,13 +1,13 @@
 use crate::data_set::utility::{DataBatch, InputOutputData};
 
-pub trait DataSet<'data, T, D>
+pub trait DataSet<'data, T, InputD, OutputD>
 where
     T: 'static,
 {
-    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D>;
+    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, InputD, OutputD>;
 
-    fn train_data(&'data self) -> InputOutputData<'data, T, D>;
-    fn test_data(&'data self) -> InputOutputData<'data, T, D>;
+    fn train_data(&'data self) -> InputOutputData<'data, T, InputD, OutputD>;
+    fn test_data(&'data self) -> InputOutputData<'data, T, InputD, OutputD>;
 
     fn num_samples(&self) -> usize;
 

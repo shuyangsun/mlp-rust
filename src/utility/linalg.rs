@@ -30,7 +30,7 @@ where
 fn par_arr_operation<'a, T, D, F>(arr_view: &'a ArrayView<T, D>, operation: F) -> Array<T, D>
 where
     T: Copy + Send + Sync,
-    D: Dimension + RemoveAxis,
+    D: RemoveAxis,
     F: Fn(&ArrayView<'a, T, D>) -> Array<T, D> + Send + Sync,
 {
     let thread_count = num_cpus::get();
@@ -68,7 +68,7 @@ where
 pub fn stack_arr_views<T, D>(arr_vec: &Vec<ArrayView<T, D>>) -> Array<T, D>
 where
     T: Copy,
-    D: Dimension + RemoveAxis,
+    D: RemoveAxis,
 {
     stack(Axis(0), arr_vec.as_slice()).unwrap()
 }

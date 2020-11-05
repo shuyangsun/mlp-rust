@@ -1,18 +1,20 @@
-use crate::traits::optimizer_traits::Optimizer;
-use ndarray::{ArrayD, ArrayViewD};
+use crate::{DataSet, Optimizer};
+use ndarray::{Array, ArrayView};
 
-pub trait Model<T> {
-    fn train(
-        &mut self,
-        max_num_iter: usize,
+pub trait Model<T, InputD, OutputD> {
+    fn train<'data, 'model>(
+        &'model mut self,
+        data: &'data mut Box<dyn DataSet<'data, T, InputD, OutputD>>,
+        max_num_epoch: usize,
+        batch_size: usize,
         optimizer: &Box<dyn Optimizer<T>>,
-        input: ArrayViewD<T>,
-        expected_output: ArrayViewD<T>,
-    );
+        should_print_loss: bool,
+    ) where
+        'data: 'model;
 
-    fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T>;
+    fn predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD>;
 
-    fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn par_predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
         self.predict(input)
     }
 }
