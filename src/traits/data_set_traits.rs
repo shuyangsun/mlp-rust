@@ -1,26 +1,9 @@
-use ndarray::ArrayViewD;
+use crate::InputOutputData;
 
-pub struct InputOutputData<'a, T> {
-    pub input: ArrayViewD<'a, T>,
-    pub output: ArrayViewD<'a, T>,
-}
+pub trait DataSet<'a, T, D> {
+    fn next_training_batch(&'a self) -> InputOutputData<'a, T, D>;
 
-impl<'a, T> InputOutputData<'a, T> {
-    pub fn new(input: ArrayViewD<'a, T>, output: ArrayViewD<'a, T>) -> Self {
-        assert_eq!(input.ndim(), output.ndim());
-        assert_eq!(input.shape()[0], output.shape()[0]);
-        Self { input, output }
-    }
-
-    pub fn num_samples(&self) -> usize {
-        self.input.shape()[0]
-    }
-}
-
-pub trait DataSet<'a, T> {
-    fn next_training_batch(&'a self) -> InputOutputData<'a, T>;
-
-    fn test_data(&'a self) -> InputOutputData<'a, T>;
+    fn test_data(&'a self) -> InputOutputData<'a, T, D>;
 
     fn num_samples(&self) -> usize;
 

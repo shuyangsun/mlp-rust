@@ -1,19 +1,22 @@
 use crate::utility::math::shuffle_array;
 use crate::{DataSet, InputOutputData, MLPFloat};
-use ndarray::prelude::*;
+use ndarray::{s, Array, ArrayD, ArrayView, Dimension, RemoveAxis, Slice, SliceInfo, SliceOrIndex};
+use std::marker::PhantomData;
 
-pub struct DataSet2D<T> {
+pub struct DataSetInMemory<T, D> {
     data: ArrayD<T>,
     output_size: usize,
     num_train_sample: usize,
+    _phantom: PhantomData<*const D>,
 }
 
-impl<T> DataSet2D<T>
+impl<T, D> DataSetInMemory<T, D>
 where
+    D: RemoveAxis,
     T: MLPFloat,
 {
     pub fn new(
-        data: ArrayD<T>,
+        data: Array<T, D>,
         output_size: usize,
         test_data_ratio: f32,
         should_shuffle: bool,
@@ -23,9 +26,10 @@ where
             shuffle_array(&mut data);
         }
         let mut res = Self {
-            data,
+            data: data.into_dyn(),
             output_size,
             num_train_sample: 0,
+            _phantom: PhantomData,
         };
         res.update_test_data_ratio(test_data_ratio);
         res
@@ -40,27 +44,32 @@ where
     }
 }
 
-impl<'a, T> DataSet<'a, T> for DataSet2D<T> {
-    fn next_training_batch(&'a self) -> InputOutputData<'a, T> {
+impl<'a, T, D> DataSet<'a, T, D> for DataSetInMemory<T, D>
+where
+    D: Dimension + RemoveAxis,
+{
+    fn next_training_batch(&'a self) -> InputOutputData<'a, T, D> {
         unimplemented!()
     }
 
-    fn test_data(&'a self) -> InputOutputData<'a, T> {
-        let input: ArrayViewD<'a, T> = self
+    fn test_data(&'a self) -> InputOutputData<'a, T, D> {
+        let input: ArrayView<'a, T, D> = self
             .data
             .slice(s![
                 self.num_train_sample..self.num_samples(),
                 ..self.data.shape()[1] - self.output_size
             ])
-            .into_dyn();
-        let output: ArrayViewD<'a, T> = self
+            .into_dimensionality::<D>()
+            .unwrap();
+        let output: ArrayView<'a, T, D> = self
             .data
             .slice(s![
                 self.num_train_sample..self.num_samples(),
                 self.data.shape()[1] - self.output_size..
             ])
-            .into_dyn();
-        InputOutputData::<'a, T>::new(input, output)
+            .into_dimensionality::<D>()
+            .unwrap();
+        InputOutputData::<'a, T, D>::new(input, output)
     }
 
     fn num_samples(&self) -> usize {
