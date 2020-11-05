@@ -1,5 +1,5 @@
 use crate::data_set::utility::DataBatch;
-use crate::utility::math::shuffle_array;
+use crate::utility::math::{shuffle_array, shuffle_array_within_range};
 use crate::{DataSet, InputOutputData, MLPFloat};
 use ndarray::{s, Array, ArrayD, ArrayView, Dimension, RemoveAxis};
 use std::marker::PhantomData;
@@ -38,8 +38,12 @@ where
         res
     }
 
-    pub fn shuffle(&mut self) {
+    pub fn shuffle_all(&mut self) {
         shuffle_array(&mut self.data)
+    }
+
+    pub fn shuffle_train(&mut self) {
+        shuffle_array_within_range(&mut self.data, 0..self.training_sample_size)
     }
 
     pub fn update_test_data_ratio(&mut self, test_data_ratio: f64) {
@@ -53,8 +57,28 @@ where
     T: 'static,
     D: Dimension,
 {
-    fn next_training_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D> {
+    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D> {
         DataBatch::new(&self.data, batch_size, self.output_size)
+    }
+
+    fn train_data(&'data self) -> InputOutputData<'data, T, D> {
+        let input: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                ..self.num_training_samples(),
+                ..self.data.shape()[1] - self.output_size
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        let output: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                ..self.num_training_samples(),
+                self.data.shape()[1] - self.output_size..
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        InputOutputData::<'data, T, D>::new(input, output)
     }
 
     fn test_data(&'data self) -> InputOutputData<'data, T, D> {
@@ -111,7 +135,7 @@ mod unit_test {
         let batch_size = 100usize;
         let mut total_sample = 0usize;
         let mut counter = 0usize;
-        for batch in dataset.next_training_batch(batch_size) {
+        for batch in dataset.next_train_batch(batch_size) {
             if counter > 10 {
                 break;
             }
@@ -121,5 +145,46 @@ mod unit_test {
             counter += 1;
         }
         assert_eq!(total_sample, shape[0]);
+    }
+
+    #[test]
+    fn test_data_set_shuffle() {
+        let shape = [997, 10];
+        let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
+        let mut dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
+        let (train_1_input, train_1_output) = (
+            dataset.train_data().input.into_owned(),
+            dataset.train_data().output.into_owned(),
+        );
+        let (test_1_input, test_1_output) = (
+            dataset.test_data().input.into_owned(),
+            dataset.test_data().output.into_owned(),
+        );
+        dataset.shuffle_train();
+        let (train_2_input, train_2_output) = (
+            dataset.train_data().input.into_owned(),
+            dataset.train_data().output.into_owned(),
+        );
+        let (test_2_input, test_2_output) = (
+            dataset.test_data().input.into_owned(),
+            dataset.test_data().output.into_owned(),
+        );
+        assert_ne!(train_1_input, train_2_input);
+        assert_ne!(train_1_output, train_2_output);
+        assert_eq!(test_1_input, test_2_input);
+        assert_eq!(test_1_output, test_2_output);
+        dataset.shuffle_all();
+        let (train_3_input, train_3_output) = (
+            dataset.train_data().input.into_owned(),
+            dataset.train_data().output.into_owned(),
+        );
+        let (test_3_input, test_3_output) = (
+            dataset.test_data().input.into_owned(),
+            dataset.test_data().output.into_owned(),
+        );
+        assert_ne!(train_3_input, train_2_input);
+        assert_ne!(train_3_output, train_2_output);
+        assert_ne!(test_3_input, test_2_input);
+        assert_ne!(test_3_output, test_2_output);
     }
 }

@@ -4,8 +4,9 @@ pub trait DataSet<'data, T, D>
 where
     T: 'static,
 {
-    fn next_training_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D>;
+    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D>;
 
+    fn train_data(&'data self) -> InputOutputData<'data, T, D>;
     fn test_data(&'data self) -> InputOutputData<'data, T, D>;
 
     fn num_samples(&self) -> usize;
