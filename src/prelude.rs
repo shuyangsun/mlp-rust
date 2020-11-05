@@ -1,6 +1,6 @@
 pub use crate::{
-    Activation, BatchNormalization, Bias, Dense, GradientDescent, InputNormalization, LayerChain,
-    Loss, Model, Optimizer, Serial, Tensor, MLP,
+    Activation, BatchNormalization, Bias, DataSet2D, Dense, GradientDescent, InputNormalization,
+    LayerChain, Loss, Model, Optimizer, Serial, Tensor, MLP,
 };
 
 // Macro exports
