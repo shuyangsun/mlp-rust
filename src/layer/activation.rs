@@ -38,11 +38,11 @@ impl Activation {
     }
 }
 
-impl<T> Tensor<T> for Activation
+impl<T, D> Tensor<T, D, D> for Activation
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>
+    fn forward(&self, input: ArrayView<T, D>) -> Array<T, D>
     where
         T: MLPFloat,
     {
@@ -51,9 +51,9 @@ where
 
     fn backward_respect_to_input(
         &self,
-        _: ArrayViewD<T>,
-        layer_output: ArrayViewD<T>,
-    ) -> ArrayD<T> {
+        layer_input: ArrayView<T, D>,
+        layer_output: ArrayView<T, D>,
+    ) -> Array<T, D> {
         let mut res: ArrayD<T> = layer_output.into_owned();
         match self {
             Self::TanH => {
@@ -75,7 +75,7 @@ where
         res
     }
 
-    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T>
+    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D>
     where
         T: MLPFloat,
     {
