@@ -1,17 +1,18 @@
+extern crate ndarray;
 use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
 use downcast_rs::{impl_downcast, Downcast};
-use ndarray::{Array, ArrayView};
+use ndarray::prelude::*;
 
-pub trait Tensor<T, InputD, OutputD>: Downcast {
-    fn forward(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD>;
+pub trait Tensor<T>: Downcast {
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;
     fn backward_respect_to_input(
         &self,
-        layer_input: ArrayView<T, InputD>,
-        layer_output: ArrayView<T, OutputD>,
-    ) -> Array<T, InputD>;
+        layer_input: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T>;
 
-    fn par_forward(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward(input)
     }
 
@@ -21,8 +22,8 @@ pub trait Tensor<T, InputD, OutputD>: Downcast {
 
     fn backward_update_check_frozen(
         &mut self,
-        input: ArrayView<T, InputD>,
-        output_gradient: ArrayView<T, OutputD>,
+        input: ArrayViewD<T>,
+        output_gradient: ArrayViewD<T>,
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
         if self.is_frozen() {
@@ -33,8 +34,8 @@ pub trait Tensor<T, InputD, OutputD>: Downcast {
 
     fn backward_update(
         &mut self,
-        _input: ArrayView<T, InputD>,
-        _output_gradient: ArrayView<T, OutputD>,
+        _input: ArrayViewD<T>,
+        _output_gradient: ArrayViewD<T>,
         _optimizer: &Box<dyn Optimizer<T>>,
     ) {
         unimplemented!()
@@ -49,4 +50,4 @@ pub trait Tensor<T, InputD, OutputD>: Downcast {
     }
 }
 
-impl_downcast!(Tensor<T, InputD, OutputD>);
+impl_downcast!(Tensor<T>);

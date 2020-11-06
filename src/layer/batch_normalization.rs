@@ -1,34 +1,34 @@
+extern crate ndarray;
 use super::super::traits::numerical_traits::MLPFloat;
 use super::super::traits::tensor_traits::Tensor;
 use crate::utility::{counter::CounterEst, math::eps};
-use ndarray::{Array, ArrayView, Axis, RemoveAxis};
+use ndarray::prelude::*;
 use std::cell::RefCell;
 
-pub struct BatchNormalization<T, D>
+pub struct BatchNormalization<T>
 where
     T: MLPFloat,
 {
     is_frozen: bool,
     size: usize,
-    moving_mean: RefCell<Option<Array<T, D>>>,     // n
-    moving_variance: RefCell<Option<Array<T, D>>>, // n
-    last_mean: RefCell<Option<Array<T, D>>>,       // n
-    last_variance: RefCell<Option<Array<T, D>>>,   // n
+    moving_mean: RefCell<Option<ArrayD<T>>>,     // n
+    moving_variance: RefCell<Option<ArrayD<T>>>, // n
+    last_mean: RefCell<Option<ArrayD<T>>>,       // n
+    last_variance: RefCell<Option<ArrayD<T>>>,   // n
     moving_batch_size: RefCell<usize>,
     last_batch_size: RefCell<usize>,
-    gama: Array<T, D>, // 1 x n
-    beta: Array<T, D>, // 1 x n
+    gama: ArrayD<T>, // 1 x n
+    beta: ArrayD<T>, // 1 x n
 }
 
-impl<T, D> BatchNormalization<T, D>
+impl<T> BatchNormalization<T>
 where
-    D: RemoveAxis,
     T: MLPFloat,
 {
-    fn forward_helper(&self, input: ArrayView<T, D>, is_parallel: bool) -> Array<T, D> {
+    fn forward_helper(&self, input: ArrayViewD<T>, is_parallel: bool) -> ArrayD<T> {
         *self.last_batch_size.borrow_mut() = input.shape()[0];
         let mean = input.mean_axis(Axis(0)).unwrap();
-        let mut variance: Array<T, D> = (&input - &mean.view()).into_dimensionality().unwrap();
+        let mut variance: ArrayD<T> = (&input - &mean.view()).into_dimensionality().unwrap();
         if is_parallel {
             variance.par_mapv_inplace(|ele| ele.powi(2));
         } else {
@@ -59,23 +59,19 @@ where
     }
 }
 
-impl<T, D> Tensor<T, D, D> for BatchNormalization<T, D>
+impl<T> Tensor<T> for BatchNormalization<T>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, false)
     }
 
-    fn backward_respect_to_input(
-        &self,
-        layer_input: ArrayView<T, D>,
-        layer_output: ArrayView<T, D>,
-    ) -> Array<T, D> {
+    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
         unimplemented!()
     }
 
-    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, true)
     }
 
@@ -92,7 +88,7 @@ where
     }
 }
 
-impl<T, D> BatchNormalization<T, D>
+impl<T> BatchNormalization<T>
 where
     T: MLPFloat,
 {
@@ -106,8 +102,8 @@ where
             last_variance: RefCell::new(None),
             moving_batch_size: RefCell::new(0),
             last_batch_size: RefCell::new(0),
-            gama: Array::ones((1, size)),
-            beta: Array::zeros((1, size)),
+            gama: Array2::ones((1, size)).into_dyn(),
+            beta: Array2::zeros((1, size)).into_dyn(),
         }
     }
 
