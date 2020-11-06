@@ -1,8 +1,8 @@
 use crate::{
-    batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, DataSet, Dense,
+    batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, Dense,
     InputNormalization, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Serial, Tensor,
 };
-use ndarray::{Array2, ArrayView2, Ix2};
+use ndarray::{ArrayD, ArrayViewD};
 
 pub struct MLP<T>
 where
@@ -83,34 +83,26 @@ where
     }
 }
 
-impl<T> Model<T, Ix2, Ix2> for MLP<T>
+impl<T> Model<T> for MLP<T>
 where
     T: MLPFloat,
 {
-    fn train<'data, 'model>(
-        &'model mut self,
-        data: &'data mut Box<dyn DataSet<'data, T, Ix2, Ix2>>,
-        max_num_epoch: usize,
-        batch_size: usize,
+    fn train(
+        &mut self,
+        max_num_iter: usize,
         optimizer: &Box<dyn Optimizer<T>>,
-        should_print_loss: bool,
-    ) where
-        'data: 'model,
-    {
-        self.serial_model.train(
-            data,
-            max_num_epoch,
-            batch_size,
-            optimizer,
-            should_print_loss,
-        );
+        input: ArrayViewD<T>,
+        expected_output: ArrayViewD<T>,
+    ) {
+        self.serial_model
+            .train(max_num_iter, optimizer, input, expected_output)
     }
 
-    fn predict(&self, input: ArrayView2<T>) -> Array2<T> {
+    fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.serial_model.predict(input)
     }
 
-    fn par_predict(&self, input: ArrayView2<T>) -> Array2<T> {
+    fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.serial_model.par_predict(input)
     }
 }
@@ -119,7 +111,6 @@ where
 mod unit_test {
     use crate::prelude::*;
     extern crate ndarray;
-    use crate::DataSet;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -151,7 +142,7 @@ mod unit_test {
     #[test]
     fn test_mlp_forward() {
         let shape = [5, 10];
-        let input_data = Array2::random(shape, Uniform::new(-1., 1.));
+        let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
         let simple_dnn = generate_simple_mlp_regressor(shape[1]);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
@@ -162,7 +153,7 @@ mod unit_test {
     #[test]
     fn test_mlp_forward_no_hidden_layer() {
         let shape = [3, 10];
-        let input_data = Array2::random(shape, Uniform::new(0., 10.));
+        let input_data = Array::random(shape, Uniform::new(0., 10.)).into_dyn();
         let simple_dnn = MLP::new_regressor(shape[1], 1, vec![], Activation::ReLu, false, false);
         let prediction = simple_dnn.predict(input_data.view());
         let par_prediction = simple_dnn.par_predict(input_data.view());
@@ -174,7 +165,7 @@ mod unit_test {
     fn test_model_predict_stress() {
         let shape = &[100usize, 1024];
         let output_size = 10;
-        let input_data = Array2::random(shape.clone(), Uniform::new(0., 10.));
+        let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_mlp_classifier(shape[1], output_size);
         let prediction = dnn.predict(input_data.view());
         assert_eq!(prediction.shape(), &[shape[0], output_size]);
@@ -184,7 +175,7 @@ mod unit_test {
     fn test_model_par_predict_stress() {
         let shape = &[1000usize, 1024];
         let output_size = 10;
-        let input_data = Array2::random(shape.clone(), Uniform::new(0., 10.));
+        let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
         let dnn = generate_stress_mlp_classifier(shape[1], output_size);
         let prediction = dnn.par_predict(input_data.view());
         assert_eq!(prediction.shape(), &[shape[0], output_size]);
@@ -192,26 +183,28 @@ mod unit_test {
 
     #[test]
     fn test_model_train() {
+        let input_data = arr2(&vec![
+            [0.5f32, 0.05f32],
+            [0.0f32, 0.0f32],
+            [-0.5f32, -0.5f32],
+        ])
+        .into_dyn();
+        let output_data = arr2(&vec![[1.0f32], [0.0f32], [-1.0f32]]).into_dyn();
         let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
         // let mut simple_dnn = generate_simple_dnn(2, 2);
-
-        let input = arr2(&vec![
-            [0.5f32, 0.05, 1.],
-            [0.0f32, 0.0, 0.],
-            [-0.5f32, -0.5f32, -1.],
-        ]);
-        let output = arr2(&vec![[1f32], [0.], [-1.]]);
-        let mut dataset: Box<dyn DataSet<f32, Ix2, Ix2>> =
-            Box::new(DataSetInMemory::new(input, output, 1., false));
         println!(
             "Before train prediction: {:#?}",
-            simple_dnn.predict(dataset.train_data().input)
+            simple_dnn.predict(input_data.view())
         );
-
-        simple_dnn.train(&mut dataset, 1, 100, &gradient_descent!(0.01f32), false);
+        simple_dnn.train(
+            1000,
+            &gradient_descent!(0.01f32),
+            input_data.view(),
+            output_data.view(),
+        );
         println!(
             "After train prediction: {:#?}",
-            simple_dnn.predict(dataset.train_data().input)
+            simple_dnn.predict(input_data.view())
         );
     }
 }

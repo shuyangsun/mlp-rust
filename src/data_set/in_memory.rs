@@ -1,91 +1,108 @@
-use self::super::utility::{generate_arg_shuffle_indices, shuffle_array, DataBatch};
+use crate::data_set::utility::DataBatch;
+use crate::utility::math::{shuffle_array, shuffle_array_within_range};
 use crate::{DataSet, InputOutputData, MLPFloat};
-use ndarray::{Array, ArrayView, Axis, Dimension, RemoveAxis, Slice};
+use ndarray::{s, Array, ArrayD, ArrayView, Dimension, RemoveAxis};
+use std::marker::PhantomData;
 
-pub struct DataSetInMemory<T, InputD, OutputD> {
-    input_data: Array<T, InputD>,
-    output_data: Array<T, OutputD>,
+pub struct DataSetInMemory<T, D> {
+    data: ArrayD<T>,
+    output_size: usize,
     training_sample_size: usize,
+    _phantom: PhantomData<*const D>,
 }
 
-impl<T, InputD, OutputD> DataSetInMemory<T, InputD, OutputD>
+impl<T, D> DataSetInMemory<T, D>
 where
-    InputD: RemoveAxis,
-    OutputD: RemoveAxis,
+    D: RemoveAxis,
     T: MLPFloat,
 {
     pub fn new(
-        input_data: Array<T, InputD>,
-        output_data: Array<T, OutputD>,
+        data: Array<T, D>,
+        output_size: usize,
         test_data_ratio: f64,
         should_shuffle: bool,
     ) -> Self {
-        assert_eq!(input_data.shape()[0], output_data.shape()[0]);
         assert!(test_data_ratio >= 0.);
         assert!(test_data_ratio <= 1.);
+        let mut data = data;
+        if should_shuffle {
+            shuffle_array(&mut data);
+        }
         let mut res = Self {
-            input_data,
-            output_data,
+            data: data.into_dyn(),
+            output_size,
             training_sample_size: 0,
+            _phantom: PhantomData,
         };
         res.update_test_data_ratio(test_data_ratio);
-        if should_shuffle {
-            res.shuffle_all()
-        }
         res
     }
 
     pub fn shuffle_all(&mut self) {
-        let (a, b) = generate_arg_shuffle_indices(0..self.num_samples());
-        shuffle_array(&mut self.input_data, (&a, &b));
-        shuffle_array(&mut self.output_data, (&a, &b));
+        shuffle_array(&mut self.data)
     }
 
     pub fn shuffle_train(&mut self) {
-        let (a, b) = generate_arg_shuffle_indices(0..self.num_training_samples());
-        shuffle_array(&mut self.input_data, (&a, &b));
-        shuffle_array(&mut self.output_data, (&a, &b));
+        shuffle_array_within_range(&mut self.data, 0..self.training_sample_size)
     }
 
     pub fn update_test_data_ratio(&mut self, test_data_ratio: f64) {
         self.training_sample_size =
-            (self.input_data.shape()[0] as f64 * (1. - test_data_ratio)).floor() as usize;
+            (self.data.shape()[0] as f64 * (1. - test_data_ratio)).floor() as usize;
     }
 }
 
-impl<'data, T, InputD, OutputD> DataSet<'data, T, InputD, OutputD>
-    for DataSetInMemory<T, InputD, OutputD>
+impl<'data, T, D> DataSet<'data, T, D> for DataSetInMemory<T, D>
 where
     T: 'static,
-    InputD: Dimension,
-    OutputD: Dimension,
+    D: Dimension,
 {
-    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, InputD, OutputD> {
-        DataBatch::new(&self.input_data, &self.output_data, batch_size)
+    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D> {
+        DataBatch::new(&self.data, batch_size, self.output_size)
     }
 
-    fn train_data(&'data self) -> InputOutputData<'data, T, InputD, OutputD> {
-        let input: ArrayView<'data, T, InputD> = self
-            .input_data
-            .slice_axis(Axis(0), Slice::from(..self.num_training_samples()));
-        let output: ArrayView<'data, T, OutputD> = self
-            .output_data
-            .slice_axis(Axis(0), Slice::from(..self.num_training_samples()));
-        InputOutputData::<'data, T, InputD, OutputD>::new(input, output)
+    fn train_data(&'data self) -> InputOutputData<'data, T, D> {
+        let input: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                ..self.num_training_samples(),
+                ..self.data.shape()[1] - self.output_size
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        let output: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                ..self.num_training_samples(),
+                self.data.shape()[1] - self.output_size..
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        InputOutputData::<'data, T, D>::new(input, output)
     }
 
-    fn test_data(&'data self) -> InputOutputData<'data, T, InputD, OutputD> {
-        let input: ArrayView<'data, T, InputD> = self
-            .input_data
-            .slice_axis(Axis(0), Slice::from(self.num_training_samples()..));
-        let output: ArrayView<'data, T, OutputD> = self
-            .output_data
-            .slice_axis(Axis(0), Slice::from(self.num_training_samples()..));
-        InputOutputData::<'data, T, InputD, OutputD>::new(input, output)
+    fn test_data(&'data self) -> InputOutputData<'data, T, D> {
+        let input: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                self.num_training_samples()..self.num_samples(),
+                ..self.data.shape()[1] - self.output_size
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        let output: ArrayView<'data, T, D> = self
+            .data
+            .slice(s![
+                self.num_training_samples()..self.num_samples(),
+                self.data.shape()[1] - self.output_size..
+            ])
+            .into_dimensionality::<D>()
+            .unwrap();
+        InputOutputData::<'data, T, D>::new(input, output)
     }
 
     fn num_samples(&self) -> usize {
-        self.input_data.shape()[0]
+        self.data.shape()[0]
     }
 
     fn num_training_samples(&self) -> usize {
@@ -96,6 +113,8 @@ where
 #[cfg(test)]
 mod unit_test {
     use crate::prelude::*;
+    extern crate ndarray;
+
     use crate::DataSet;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
@@ -103,13 +122,10 @@ mod unit_test {
 
     #[test]
     fn test_data_set_1() {
-        let num_samples = 997usize;
-        let input_size = 8;
-        let output_size = 2;
-        let input_data = Array2::random((num_samples, input_size), Uniform::new(-1., 1.));
-        let output_data = Array2::random((num_samples, output_size), Uniform::new(-1., 1.));
-        let dataset = DataSetInMemory::new(input_data, output_data, 0.4, true);
-        assert_eq!(dataset.num_samples(), num_samples);
+        let shape = [997, 10];
+        let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
+        let dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
+        assert_eq!(dataset.num_samples(), shape[0]);
         assert_eq!(dataset.num_training_samples(), 598);
         assert_eq!(dataset.num_test_samples(), 399);
         let test_data = dataset.test_data();
@@ -128,17 +144,14 @@ mod unit_test {
             total_sample += batch.input.shape()[0];
             counter += 1;
         }
-        assert_eq!(total_sample, num_samples);
+        assert_eq!(total_sample, shape[0]);
     }
 
     #[test]
     fn test_data_set_shuffle() {
-        let num_samples = 997usize;
-        let input_size = 8;
-        let output_size = 2;
-        let input_data = Array2::random((num_samples, input_size), Uniform::new(-1., 1.));
-        let output_data = Array2::random((num_samples, output_size), Uniform::new(-1., 1.));
-        let mut dataset = DataSetInMemory::new(input_data, output_data, 0.4, true);
+        let shape = [997, 10];
+        let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
+        let mut dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
         let (train_1_input, train_1_output) = (
             dataset.train_data().input.into_owned(),
             dataset.train_data().output.into_owned(),

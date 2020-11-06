@@ -1,5 +1,6 @@
 use crate::MLPFloat;
-use ndarray::{Array, ArrayView2, ArrayViewD, Dimension, Ix2};
+use ndarray::{Array, ArrayView2, ArrayViewD, Axis, Dimension, Ix2, RemoveAxis};
+use rand::Rng;
 
 pub fn eps<T>() -> T
 where
@@ -45,4 +46,31 @@ where
 
 pub fn to_2d_view<T>(arr_view: ArrayViewD<T>) -> ArrayView2<T> {
     arr_view.into_dimensionality::<Ix2>().unwrap()
+}
+
+pub fn shuffle_array<T, D>(arr: &mut Array<T, D>)
+where
+    D: Dimension + RemoveAxis,
+    T: MLPFloat,
+{
+    shuffle_array_within_range(arr, 0..arr.shape()[0])
+}
+pub fn shuffle_array_within_range<T, D>(arr: &mut Array<T, D>, range: std::ops::Range<usize>)
+where
+    D: Dimension + RemoveAxis,
+    T: MLPFloat,
+{
+    let mut rng = rand::thread_rng();
+    let (start, end) = (range.start, range.end);
+    let nrows = end - start;
+    for _ in 0..nrows {
+        let idx_a = start + rng.gen::<usize>() % nrows;
+        let idx_b: usize = start + rng.gen::<usize>() % nrows;
+        let first_clone = arr.index_axis(Axis(0), idx_a).into_owned();
+        let second_clone = arr.index_axis(Axis(0), idx_b).into_owned();
+        let mut first_row = arr.index_axis_mut(Axis(0), idx_a);
+        first_row.assign(&second_clone);
+        let mut second_row = arr.index_axis_mut(Axis(0), idx_b);
+        second_row.assign(&first_clone);
+    }
 }
