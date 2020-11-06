@@ -8,7 +8,7 @@ pub struct MLP<T>
 where
     T: MLPFloat,
 {
-    serial_model: Serial<T>,
+    serial_model: Serial<T, Ix2>,
 }
 
 impl<T> MLP<T>
@@ -24,7 +24,7 @@ where
         should_use_batch_norm: bool, // TODO: change to enums
         loss: Loss,
     ) -> Self {
-        let mut layers: Vec<Box<dyn Tensor<T>>> = Vec::new();
+        let mut layers: Vec<Box<dyn Tensor<T, Ix2, Ix2>>> = Vec::new();
         if should_normalize_input {
             layers.push(input_norm!(input_size));
         }
@@ -92,7 +92,7 @@ where
         data: &'data mut Box<dyn DataSet<'data, T, Ix2, Ix2>>,
         max_num_epoch: usize,
         batch_size: usize,
-        optimizer: &Box<dyn Optimizer<T>>,
+        optimizer: &Box<dyn Optimizer<T, Ix2>>,
         should_print_loss: bool,
     ) where
         'data: 'model,

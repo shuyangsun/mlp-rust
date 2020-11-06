@@ -54,6 +54,7 @@ where
 
 impl<T, D> Tensor<T, D, D> for InputNormalization<T, D>
 where
+    D: 'static,
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {

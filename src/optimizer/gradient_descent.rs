@@ -1,6 +1,5 @@
 use crate::traits::{numerical_traits::MLPFloat, optimizer_traits::Optimizer};
-extern crate ndarray;
-use ndarray::prelude::*;
+use ndarray::prelude::ArrayViewMut;
 
 pub struct GradientDescent<T>
 where
@@ -18,11 +17,11 @@ where
     }
 }
 
-impl<T> Optimizer<T> for GradientDescent<T>
+impl<T, D> Optimizer<T, D> for GradientDescent<T>
 where
     T: MLPFloat,
 {
-    fn modify_inplace<D>(&self, gradient: &mut ArrayViewMut<T, D>) {
+    fn modify_inplace(&self, gradient: &mut ArrayViewMut<T, D>) {
         gradient.par_map_inplace(|ele| *ele = *ele * self.learning_rate);
     }
 

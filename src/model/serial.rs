@@ -10,7 +10,7 @@ where
     loss_function: Loss,
 }
 
-impl<T> Serial<T>
+impl<T, D> Serial<T, D>
 where
     T: MLPFLoatRandSampling,
 {
@@ -21,7 +21,7 @@ where
         }
     }
 
-    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
+    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(
         layers: I,
         loss_function: Loss,
     ) -> Self {
@@ -31,11 +31,11 @@ where
         }
     }
 
-    pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
+    pub fn add(&mut self, layer: Box<dyn Tensor<T, D, D>>) {
         self.layer_chain.push(layer);
     }
 
-    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layers: I) {
+    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(&mut self, layers: I) {
         self.layer_chain.push_all(layers)
     }
 
@@ -48,18 +48,17 @@ where
     }
 }
 
-impl<T, InputD, OutputD> Model<T, InputD, OutputD> for Serial<T>
+impl<T, D> Model<T, D, D> for Serial<T, D>
 where
-    InputD: Dimension,
-    OutputD: Dimension,
+    D: Dimension,
     T: MLPFloat,
 {
     fn train<'data, 'model>(
         &'model mut self,
-        data: &'data mut Box<dyn DataSet<'data, T, InputD, OutputD>>,
+        data: &'data mut Box<dyn DataSet<'data, T, D, D>>,
         max_num_epoch: usize,
         batch_size: usize,
-        optimizer: &Box<dyn Optimizer<T>>,
+        optimizer: &Box<dyn Optimizer<T, D>>,
         should_print_loss: bool,
     ) where
         'data: 'model,
@@ -67,26 +66,25 @@ where
         let mut iter_idx = 0usize;
         for epoch_idx in 0..max_num_epoch {
             for batch in data.next_train_batch(batch_size) {
-                let forward_res = self.layer_chain.forward(batch.input.into_dyn());
+                let forward_res = self.layer_chain.forward(batch.input);
                 assert_eq!(forward_res.shape(), batch.output.shape());
                 // TODO: super hacky
                 let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
                 let mut gradient = self.loss_function.backward_with_respect_to_input(
                     forward_res.view(),
-                    batch.output.into_dyn(),
+                    batch.output.clone(),
                     true,
                 );
                 gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
                 if should_print_loss {
-                    let cur_loss = self.loss_function.calculate_loss(
-                        forward_res.into_dyn().view(),
-                        batch.output.into_dyn(),
-                        true,
-                    ) + l2_reg_cost;
+                    let cur_loss =
+                        self.loss_function
+                            .calculate_loss(forward_res.view(), batch.output, true)
+                            + l2_reg_cost;
                     println!("Epoch={}, iter={}, loss={}", epoch_idx, iter_idx, cur_loss);
                 }
                 self.layer_chain.backward_update_check_frozen(
-                    batch.input.into_dyn(),
+                    batch.input,
                     gradient.view(),
                     optimizer,
                 );
@@ -95,22 +93,13 @@ where
         }
     }
 
-    fn predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
+    fn predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.loss_function
-            .predict(self.layer_chain.predict(input.into_dyn()).view(), false)
-            .into_dimensionality::<OutputD>()
-            .unwrap()
+            .predict(self.layer_chain.predict(input).view(), false)
     }
 
-    fn par_predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
+    fn par_predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.loss_function
-            .predict(
-                self.layer_chain
-                    .par_predict(input.into_dyn().into_dyn())
-                    .view(),
-                true,
-            )
-            .into_dimensionality::<OutputD>()
-            .unwrap()
+            .predict(self.layer_chain.par_predict(input).view(), true)
     }
 }

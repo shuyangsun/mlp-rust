@@ -24,7 +24,7 @@ pub trait Tensor<T, InputD, OutputD>: Downcast {
         &mut self,
         _input: ArrayView<T, InputD>,
         _output_gradient: ArrayView<T, OutputD>,
-        _optimizer: &Box<dyn Optimizer<T>>,
+        _optimizer: &Box<dyn Optimizer<T, InputD>>,
     ) {
         unimplemented!()
     }
@@ -33,7 +33,7 @@ pub trait Tensor<T, InputD, OutputD>: Downcast {
         &mut self,
         input: ArrayView<T, InputD>,
         output_gradient: ArrayView<T, OutputD>,
-        optimizer: &Box<dyn Optimizer<T>>,
+        optimizer: &Box<dyn Optimizer<T, InputD>>,
     ) {
         if self.is_frozen() {
             return;

@@ -7,7 +7,7 @@ pub trait Model<T, InputD, OutputD> {
         data: &'data mut Box<dyn DataSet<'data, T, InputD, OutputD>>,
         max_num_epoch: usize,
         batch_size: usize,
-        optimizer: &Box<dyn Optimizer<T>>,
+        optimizer: &Box<dyn Optimizer<T, InputD>>,
         should_print_loss: bool,
     ) where
         'data: 'model;

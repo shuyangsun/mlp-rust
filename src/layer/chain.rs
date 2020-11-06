@@ -95,6 +95,7 @@ where
 
 impl<T, D> Tensor<T, D, D> for LayerChain<T, D>
 where
+    D: 'static,
     T: MLPFloat,
 {
     fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
@@ -116,7 +117,7 @@ where
         &mut self,
         input: ArrayView<T, D>,
         output_gradient: ArrayView<T, D>,
-        optimizer: &Box<dyn Optimizer<T>>,
+        optimizer: &Box<dyn Optimizer<T, D>>,
     ) {
         if self.is_frozen {
             return;

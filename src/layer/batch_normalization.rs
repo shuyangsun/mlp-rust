@@ -60,8 +60,13 @@ where
 
 impl<T, D> Tensor<T, D, D> for BatchNormalization<T, D>
 where
+    D: 'static,
     T: MLPFloat,
 {
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
+
     fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.forward_helper(input, false)
     }
@@ -76,10 +81,6 @@ where
         _layer_output: ArrayView<T, D>,
     ) -> Array<T, D> {
         unimplemented!()
-    }
-
-    fn is_frozen(&self) -> bool {
-        self.is_frozen
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {
