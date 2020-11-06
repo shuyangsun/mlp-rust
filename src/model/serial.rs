@@ -2,11 +2,11 @@ use crate::utility::counter::CounterEst;
 use crate::{DataSet, LayerChain, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Tensor};
 use ndarray::{Array, ArrayView, Dimension};
 
-pub struct Serial<T, D>
+pub struct Serial<T>
 where
     T: MLPFloat,
 {
-    layer_chain: LayerChain<T, D>,
+    layer_chain: LayerChain<T>,
     loss_function: Loss,
 }
 
