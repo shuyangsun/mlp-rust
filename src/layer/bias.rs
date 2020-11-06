@@ -12,7 +12,6 @@ where
 
 impl<T, D> Tensor<T, D, D> for Bias<T, D>
 where
-    D: 'static,
     T: MLPFloat,
 {
     fn is_frozen(&self) -> bool {
@@ -36,7 +35,7 @@ where
         &mut self,
         _: ArrayView<T, D>,
         output_gradient: ArrayView<T, D>,
-        optimizer: &Box<dyn Optimizer<T, D>>,
+        optimizer: &Box<dyn Optimizer<T>>,
     ) {
         optimizer.change_values(&mut self.bias_arr.view_mut(), output_gradient);
     }

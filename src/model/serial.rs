@@ -10,7 +10,7 @@ where
     loss_function: Loss,
 }
 
-impl<T, D> Serial<T, D>
+impl<T> Serial<T>
 where
     T: MLPFLoatRandSampling,
 {
@@ -21,7 +21,7 @@ where
         }
     }
 
-    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(
+    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
         layers: I,
         loss_function: Loss,
     ) -> Self {
@@ -31,11 +31,11 @@ where
         }
     }
 
-    pub fn add(&mut self, layer: Box<dyn Tensor<T, D, D>>) {
+    pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
         self.layer_chain.push(layer);
     }
 
-    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(&mut self, layers: I) {
+    pub fn add_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layers: I) {
         self.layer_chain.push_all(layers)
     }
 
@@ -48,17 +48,18 @@ where
     }
 }
 
-impl<T, D> Model<T, D, D> for Serial<T, D>
+impl<T, InputD, OutputD> Model<T, InputD, OutputD> for Serial<T>
 where
-    D: Dimension,
+    InputD: Dimension,
+    OutputD: Dimension,
     T: MLPFloat,
 {
     fn train<'data, 'model>(
         &'model mut self,
-        data: &'data mut Box<dyn DataSet<'data, T, D, D>>,
+        data: &'data mut Box<dyn DataSet<'data, T, InputD, OutputD>>,
         max_num_epoch: usize,
         batch_size: usize,
-        optimizer: &Box<dyn Optimizer<T, D>>,
+        optimizer: &Box<dyn Optimizer<T>>,
         should_print_loss: bool,
     ) where
         'data: 'model,
@@ -66,25 +67,26 @@ where
         let mut iter_idx = 0usize;
         for epoch_idx in 0..max_num_epoch {
             for batch in data.next_train_batch(batch_size) {
-                let forward_res = self.layer_chain.forward(batch.input);
+                let forward_res = self.layer_chain.forward(batch.input.into_dyn());
                 assert_eq!(forward_res.shape(), batch.output.shape());
                 // TODO: super hacky
                 let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
                 let mut gradient = self.loss_function.backward_with_respect_to_input(
                     forward_res.view(),
-                    batch.output.clone(),
+                    batch.output.into_dyn(),
                     true,
                 );
                 gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
                 if should_print_loss {
-                    let cur_loss =
-                        self.loss_function
-                            .calculate_loss(forward_res.view(), batch.output, true)
-                            + l2_reg_cost;
+                    let cur_loss = self.loss_function.calculate_loss(
+                        forward_res.into_dyn().view(),
+                        batch.output.into_dyn(),
+                        true,
+                    ) + l2_reg_cost;
                     println!("Epoch={}, iter={}, loss={}", epoch_idx, iter_idx, cur_loss);
                 }
                 self.layer_chain.backward_update_check_frozen(
-                    batch.input,
+                    batch.input.into_dyn(),
                     gradient.view(),
                     optimizer,
                 );
@@ -93,13 +95,22 @@ where
         }
     }
 
-    fn predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
+    fn predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
         self.loss_function
-            .predict(self.layer_chain.predict(input).view(), false)
+            .predict(self.layer_chain.predict(input.into_dyn()).view(), false)
+            .into_dimensionality::<OutputD>()
+            .unwrap()
     }
 
-    fn par_predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
+    fn par_predict(&self, input: ArrayView<T, InputD>) -> Array<T, OutputD> {
         self.loss_function
-            .predict(self.layer_chain.par_predict(input).view(), true)
+            .predict(
+                self.layer_chain
+                    .par_predict(input.into_dyn().into_dyn())
+                    .view(),
+                true,
+            )
+            .into_dimensionality::<OutputD>()
+            .unwrap()
     }
 }

@@ -15,10 +15,6 @@ impl<T> Tensor<T, Ix2, Ix2> for Dense<T>
 where
     T: MLPFloat,
 {
-    fn is_frozen(&self) -> bool {
-        self.is_frozen
-    }
-
     fn forward(&self, input: ArrayView2<T>) -> Array2<T> {
         mat_mul(&input, &self.weight_view())
     }
@@ -35,11 +31,15 @@ where
         par_mat_mul(&layer_output, &self.weight_view().t())
     }
 
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
+    }
+
     fn backward_update(
         &mut self,
         input: ArrayView2<T>,
         output_gradient: ArrayView2<T>,
-        optimizer: &Box<dyn Optimizer<T, Ix2>>,
+        optimizer: &Box<dyn Optimizer<T>>,
     ) {
         let weight_gradient = mat_mul(&input.t(), &output_gradient);
         optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
