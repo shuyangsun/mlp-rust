@@ -1,10 +1,11 @@
+extern crate ndarray;
 extern crate num_cpus;
-use crate::MLPFloat;
-use ndarray::{
-    stack, Array, Array2, ArrayView, ArrayView2, Axis, Dimension, RemoveAxis, Shape, ShapeBuilder,
-    Slice,
-};
+use ndarray::prelude::*;
+use ndarray::{stack, Slice};
 use rayon::prelude::*;
+
+use self::ndarray::RemoveAxis;
+use super::super::traits::numerical_traits::MLPFloat;
 
 pub fn mat_mul<T>(lhs: &ArrayView2<T>, rhs: &ArrayView2<T>) -> Array2<T>
 where
@@ -70,19 +71,6 @@ where
     D: RemoveAxis,
 {
     stack(Axis(0), arr_vec.as_slice()).unwrap()
-}
-
-pub fn add_1_dim_to_shape<D, Sh>(shape_builder: Sh) -> Shape<D::Larger>
-where
-    D: Dimension,
-    Sh: ShapeBuilder<Dim = D>,
-{
-    let mut shape_vec = Vec::new();
-    for size in shape_builder {
-        shape_vec.push(size);
-    }
-    shape_vec.insert(0, 1);
-    shape_vec.into_shape()
 }
 
 #[cfg(test)]

@@ -1,6 +1,6 @@
-use crate::utility::{array::add_1_dim_to_shape, counter::CounterEst};
-use crate::{MLPFloat, Optimizer, Tensor};
-use ndarray::{Array, ArrayView, Dimension, ShapeBuilder};
+use crate::utility::counter::CounterEst;
+use crate::{MLPFLoatRandSampling, MLPFloat, Optimizer, Tensor};
+use ndarray::{Array, ArrayView};
 
 pub struct Bias<T, D>
 where
@@ -10,31 +10,31 @@ where
     bias_arr: Array<T, D>,
 }
 
-impl<T, D> Tensor<T, D, D> for Bias<T, D>
+impl<T> Tensor<T> for Bias<T>
 where
     T: MLPFloat,
 {
-    fn is_frozen(&self) -> bool {
-        self.is_frozen
-    }
-
-    fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         let bias_arr_broadcasted_view = self.bias_arr.broadcast(input.dim()).unwrap();
         &input + &bias_arr_broadcasted_view
     }
 
     fn backward_respect_to_input(
         &self,
-        _: ArrayView<T, D>,
-        layer_output: ArrayView<T, D>,
-    ) -> Array<T, D> {
+        _: ArrayViewD<T>,
+        layer_output: ArrayViewD<T>,
+    ) -> ArrayD<T> {
         layer_output.into_owned()
+    }
+
+    fn is_frozen(&self) -> bool {
+        self.is_frozen
     }
 
     fn backward_update(
         &mut self,
-        _: ArrayView<T, D>,
-        output_gradient: ArrayView<T, D>,
+        _: ArrayViewD<T>,
+        output_gradient: ArrayViewD<T>,
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
         optimizer.change_values(&mut self.bias_arr.view_mut(), output_gradient);
@@ -49,29 +49,19 @@ where
     }
 }
 
-impl<T, D> Bias<T, D>
+impl<T> Bias<T>
 where
-    T: MLPFloat,
+    T: MLPFloat + MLPFLoatRandSampling,
 {
-    pub fn new<Sh>(shape: Sh) -> Self
-    where
-        D: Dimension,
-        Sh: ShapeBuilder<Dim = D::Smaller>,
-    {
-        let new_shape = add_1_dim_to_shape(shape);
-        assert_eq!(new_shape.size(), shape.size());
+    pub fn new(size: usize) -> Self {
         Self {
             is_frozen: false,
-            bias_arr: Array::zeros(new_shape),
+            bias_arr: Array2::zeros((1, size)).into_dyn(),
         }
     }
 
-    pub fn new_frozen<Sh>(shape: Sh) -> Self
-    where
-        D: Dimension,
-        Sh: ShapeBuilder<Dim = D::Smaller>,
-    {
-        let mut res = Self::new(shape);
+    pub fn new_frozen(size: usize) -> Self {
+        let mut res = Self::new(size);
         res.is_frozen = true;
         res
     }

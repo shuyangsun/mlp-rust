@@ -42,3 +42,7 @@ where
     }
     std_stable
 }
+
+pub fn to_2d_view<T>(arr_view: ArrayViewD<T>) -> ArrayView2<T> {
+    arr_view.into_dimensionality::<Ix2>().unwrap()
+}

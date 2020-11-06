@@ -1,5 +1,8 @@
+extern crate ndarray;
 use crate::traits::numerical_traits::MLPFloat;
-use ndarray::{Array2, ArrayView1, ArrayView2, Axis};
+use crate::utility::math::to_2d_view;
+use ndarray::prelude::*;
+use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
 pub enum Loss {
@@ -10,13 +13,17 @@ pub enum Loss {
 impl Loss {
     pub fn calculate_loss<T>(
         &self,
-        input: ArrayView2<T>,
-        expected_output: ArrayView2<T>,
+        input: ArrayViewD<T>,
+        expected_output: ArrayViewD<T>,
         should_be_parallel: bool,
     ) -> T
     where
         T: MLPFloat,
     {
+        assert_eq!(input.ndim(), 2);
+        assert_eq!(expected_output.ndim(), 2);
+        let input = to_2d_view(input);
+        let expected_output = to_2d_view(expected_output);
         match self {
             Self::MSE => {
                 let mut diff = &expected_output - &input;
@@ -29,7 +36,7 @@ impl Loss {
                 diff.mean().unwrap()
             }
             Self::SoftmaxCrossEntropy => {
-                let mut softmax_res = self.predict(input.view(), should_be_parallel);
+                let mut softmax_res = self.predict(input.view().into_dyn(), should_be_parallel);
                 if should_be_parallel {
                     softmax_res.par_mapv_inplace(|ele| ele.ln());
                 } else {
@@ -41,10 +48,12 @@ impl Loss {
         }
     }
 
-    pub fn predict<T>(&self, input: ArrayView2<T>, should_be_parallel: bool) -> Array2<T>
+    pub fn predict<T>(&self, input: ArrayViewD<T>, should_be_parallel: bool) -> ArrayD<T>
     where
         T: MLPFloat,
     {
+        assert_eq!(input.ndim(), 2);
+        let input = to_2d_view(input);
         match self {
             Self::MSE => input.into_owned(),
             Self::SoftmaxCrossEntropy => {
@@ -66,21 +75,26 @@ impl Loss {
                 shifted / axis_sum
             }
         }
+        .into_dyn()
     }
 
     pub fn backward_with_respect_to_input<T>(
         &self,
-        input: ArrayView2<T>,
-        expected_output: ArrayView2<T>,
+        input: ArrayViewD<T>,
+        expected_output: ArrayViewD<T>,
         should_be_parallel: bool,
-    ) -> Array2<T>
+    ) -> ArrayD<T>
     where
         T: MLPFloat,
     {
+        assert_eq!(input.ndim(), 2);
+        assert_eq!(expected_output.ndim(), 2);
+        let input = to_2d_view(input);
+        let expected_output = to_2d_view(expected_output);
         match self {
             Self::MSE => (&input - &expected_output).into_dyn(),
             Self::SoftmaxCrossEntropy => {
-                let softmax_res = self.predict(input.view(), should_be_parallel);
+                let softmax_res = self.predict(input.view().into_dyn(), should_be_parallel);
                 (&softmax_res - &expected_output).into_dyn()
             }
         }

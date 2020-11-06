@@ -1,6 +1,6 @@
-use crate::utility::{array::add_1_dim_to_shape, counter::CounterEst, math::eps};
 use crate::{MLPFloat, Tensor};
-use ndarray::{Array, ArrayView, Axis, Dimension, RemoveAxis, Shape, ShapeBuilder};
+use crate::utility::{counter::CounterEst, math::eps};
+use ndarray::{Array, ArrayView, Axis, RemoveAxis, ShapeBuilder, Shape};
 use std::cell::RefCell;
 
 pub struct BatchNormalization<T, D>
@@ -66,16 +66,16 @@ where
         self.forward_helper(input, false)
     }
 
-    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
-        self.forward_helper(input, true)
-    }
-
     fn backward_respect_to_input(
         &self,
         _layer_input: ArrayView<T, D>,
         _layer_output: ArrayView<T, D>,
     ) -> Array<T, D> {
         unimplemented!()
+    }
+
+    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+        self.forward_helper(input, true)
     }
 
     fn is_frozen(&self) -> bool {
@@ -93,33 +93,25 @@ where
 
 impl<T, D> BatchNormalization<T, D>
 where
-    D: RemoveAxis,
     T: MLPFloat,
 {
-    pub fn new<Sh>(shape: Sh) -> Self
-    where
-        Sh: ShapeBuilder<Dim = D::Smaller>,
-    {
-        let new_shape = add_1_dim_to_shape(shape);
-        assert_eq!(new_shape.size(), shape.size());
+    pub fn new<Sh>(shape: Sh) -> Self where Sh: ShapeBuilder<Dim = D>{
+        let shape = shape.into_shape();
         Self {
             is_frozen: false,
-            shape: new_shape.clone(),
+            shape: shape.clone(),
             moving_mean: RefCell::new(None),
             moving_variance: RefCell::new(None),
             last_mean: RefCell::new(None),
             last_variance: RefCell::new(None),
             moving_batch_size: RefCell::new(0),
             last_batch_size: RefCell::new(0),
-            gama: Array::ones(new_shape.clone()),
-            beta: Array::zeros(new_shape),
+            gama: Array::ones(shape.clone()),
+            beta: Array::zeros(shape),
         }
     }
 
-    pub fn new_frozen<Sh>(shape: Sh) -> Self
-    where
-        Sh: ShapeBuilder<Dim = D::Smaller>,
-    {
+    pub fn new_frozen<Sh>(shape: Sh) -> Self where Sh: ShapeBuilder<Dim = D> {
         let mut res = Self::new(shape);
         res.is_frozen = true;
         res
@@ -136,11 +128,10 @@ where
     }
 }
 
-// TODO: iterative
 #[macro_export]
 macro_rules! batch_norm {
     ($x:expr) => {{
-        Box::new(BatchNormalization::new($x))
+        Box::new(BatchNormalization::new((1, $x)))
     }};
 }
 
@@ -156,6 +147,7 @@ mod unit_test {
     #[test]
     fn test_batch_norm_forward_random_arr() {
         let shape = [10, 5];
+        Array2::zeros()
         let rand_arr = Array2::random(shape, Uniform::new(-10., 10.)).into_dyn();
         let batch_norm = BatchNormalization::new(5);
         let forward_res = batch_norm.forward(rand_arr.view());
