@@ -1,5 +1,5 @@
 use crate::MLPFloat;
-use ndarray::{Array, ArrayView2, ArrayViewD, Dimension, Ix2};
+use ndarray::{Array, Dimension};
 
 pub fn eps<T>() -> T
 where
