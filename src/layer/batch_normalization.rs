@@ -1,6 +1,7 @@
-use crate::{MLPFloat, Tensor};
+use super::super::traits::numerical_traits::MLPFloat;
+use super::super::traits::tensor_traits::Tensor;
 use crate::utility::{counter::CounterEst, math::eps};
-use ndarray::{Array, ArrayView, Axis, RemoveAxis, ShapeBuilder, Shape};
+use ndarray::{Array, ArrayView, Axis, RemoveAxis};
 use std::cell::RefCell;
 
 pub struct BatchNormalization<T, D>
@@ -8,7 +9,7 @@ where
     T: MLPFloat,
 {
     is_frozen: bool,
-    shape: Shape<D>,
+    size: usize,
     moving_mean: RefCell<Option<Array<T, D>>>,     // n
     moving_variance: RefCell<Option<Array<T, D>>>, // n
     last_mean: RefCell<Option<Array<T, D>>>,       // n
@@ -68,8 +69,8 @@ where
 
     fn backward_respect_to_input(
         &self,
-        _layer_input: ArrayView<T, D>,
-        _layer_output: ArrayView<T, D>,
+        layer_input: ArrayView<T, D>,
+        layer_output: ArrayView<T, D>,
     ) -> Array<T, D> {
         unimplemented!()
     }
@@ -95,34 +96,33 @@ impl<T, D> BatchNormalization<T, D>
 where
     T: MLPFloat,
 {
-    pub fn new<Sh>(shape: Sh) -> Self where Sh: ShapeBuilder<Dim = D>{
-        let shape = shape.into_shape();
+    pub fn new(size: usize) -> Self {
         Self {
             is_frozen: false,
-            shape: shape.clone(),
+            size,
             moving_mean: RefCell::new(None),
             moving_variance: RefCell::new(None),
             last_mean: RefCell::new(None),
             last_variance: RefCell::new(None),
             moving_batch_size: RefCell::new(0),
             last_batch_size: RefCell::new(0),
-            gama: Array::ones(shape.clone()),
-            beta: Array::zeros(shape),
+            gama: Array::ones((1, size)),
+            beta: Array::zeros((1, size)),
         }
     }
 
-    pub fn new_frozen<Sh>(shape: Sh) -> Self where Sh: ShapeBuilder<Dim = D> {
-        let mut res = Self::new(shape);
+    pub fn new_frozen(size: usize) -> Self {
+        let mut res = Self::new(size);
         res.is_frozen = true;
         res
     }
 
-    fn update_last_mean(&self, mean: Array<T, D>) {
+    fn update_last_mean(&self, mean: ArrayD<T>) {
         assert_eq!(mean.len(), self.size);
         *self.last_mean.borrow_mut() = Some(mean);
     }
 
-    fn update_last_variance(&self, variance: Array<T, D>) {
+    fn update_last_variance(&self, variance: ArrayD<T>) {
         assert_eq!(variance.len(), self.size);
         *self.last_variance.borrow_mut() = Some(variance);
     }
@@ -131,7 +131,7 @@ where
 #[macro_export]
 macro_rules! batch_norm {
     ($x:expr) => {{
-        Box::new(BatchNormalization::new((1, $x)))
+        Box::new(BatchNormalization::new($x))
     }};
 }
 
@@ -147,7 +147,6 @@ mod unit_test {
     #[test]
     fn test_batch_norm_forward_random_arr() {
         let shape = [10, 5];
-        Array2::zeros()
         let rand_arr = Array2::random(shape, Uniform::new(-10., 10.)).into_dyn();
         let batch_norm = BatchNormalization::new(5);
         let forward_res = batch_norm.forward(rand_arr.view());

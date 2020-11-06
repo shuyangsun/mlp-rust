@@ -1,13 +1,16 @@
+extern crate ndarray;
+use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
+use super::super::traits::tensor_traits::Tensor;
+use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
-use crate::{MLPFLoatRandSampling, MLPFloat, Optimizer, Tensor};
-use ndarray::{Array, ArrayView};
+use ndarray::prelude::*;
 
-pub struct Bias<T, D>
+pub struct Bias<T>
 where
     T: MLPFloat,
 {
     is_frozen: bool,
-    bias_arr: Array<T, D>,
+    bias_arr: ArrayD<T>, // 2D array with shape 1 x N, N = number of neurons
 }
 
 impl<T> Tensor<T> for Bias<T>
