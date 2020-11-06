@@ -22,12 +22,12 @@ impl<T> Optimizer<T> for GradientDescent<T>
 where
     T: MLPFloat,
 {
-    fn modify_inplace(&self, gradient: &mut ArrayViewMutD<'_, T>) {
+    fn modify_inplace<D>(&self, gradient: &mut ArrayViewMut<T, D>) {
         gradient.par_map_inplace(|ele| *ele = *ele * self.learning_rate);
     }
 
     // TODO: uncomment to test performance
-    // fn modify(&self, gradient: ArrayViewD<'_, T>) -> ArrayD<T> {
+    // fn modify<D>(&self, gradient: ArrayView<T, D>) -> Array<T, D> {
     //     gradient.mapv(|ele| ele * self.learning_rate)
     // }
 }

@@ -1,18 +1,18 @@
 use crate::utility::counter::CounterEst;
 use crate::{Dense, MLPFloat, Optimizer, Tensor};
-use ndarray::prelude::*;
+use ndarray::{Array, ArrayView};
 use std::cell::RefCell;
 
-pub struct LayerChain<T>
+pub struct LayerChain<T, D>
 where
     T: MLPFloat,
 {
     is_frozen: bool,
-    layers: Vec<Box<dyn Tensor<T>>>,
-    layer_outputs: RefCell<Vec<ArrayD<T>>>,
+    layers: Vec<Box<dyn Tensor<T, D, D>>>,
+    layer_outputs: RefCell<Vec<Array<T, D>>>,
 }
 
-impl<T> LayerChain<T>
+impl<T, D> LayerChain<T, D>
 where
     T: MLPFloat,
 {
@@ -20,7 +20,7 @@ where
         Self::new_from_sublayers(Vec::new())
     }
 
-    pub fn new_from_sublayers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(layers: I) -> Self {
+    pub fn new_from_sublayers<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(layers: I) -> Self {
         Self {
             is_frozen: false,
             layers: layers.into_iter().collect(),
@@ -28,19 +28,19 @@ where
         }
     }
 
-    pub fn push(&mut self, layer: Box<dyn Tensor<T>>) {
+    pub fn push(&mut self, layer: Box<dyn Tensor<T, D, D>>) {
         self.layers.push(layer)
     }
 
-    pub fn push_all<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(&mut self, layer: I) {
+    pub fn push_all<I: IntoIterator<Item = Box<dyn Tensor<T, D, D>>>>(&mut self, layer: I) {
         self.layers.extend(layer)
     }
 
-    pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    pub fn predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.forward_helper(input, false, false)
     }
 
-    pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    pub fn par_predict(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.forward_helper(input, false, true)
     }
 
@@ -62,10 +62,10 @@ where
 
     fn forward_helper(
         &self,
-        input: ArrayViewD<T>,
+        input: ArrayView<T, D>,
         should_cache_layer_outputs: bool,
         is_parallel: bool,
-    ) -> ArrayD<T> {
+    ) -> Array<T, D> {
         self.layer_outputs.borrow_mut().clear();
         if self.layers.is_empty() {
             panic!("Cannot calculate feed forward propagation with no layer specified.");
@@ -86,26 +86,26 @@ where
             outputs.push(next);
         }
         if should_cache_layer_outputs {
-            outputs.last().unwrap().clone()
+            outputs.last().unwrap().into_owned()
         } else {
             outputs.pop().unwrap()
         }
     }
 }
 
-impl<T> Tensor<T> for LayerChain<T>
+impl<T, D> Tensor<T, D, D> for LayerChain<T, D>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.forward_helper(input, true, false)
     }
-    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!()
+    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+        self.forward_helper(input, true, true)
     }
 
-    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.forward_helper(input, true, true)
+    fn backward_respect_to_input(&self, _: ArrayView<T, D>, _: ArrayView<T, D>) -> Array<T, D> {
+        unimplemented!()
     }
 
     fn is_frozen(&self) -> bool {
@@ -114,8 +114,8 @@ where
 
     fn backward_update(
         &mut self,
-        input: ArrayViewD<T>,
-        output_gradient: ArrayViewD<T>,
+        input: ArrayView<T, D>,
+        output_gradient: ArrayView<T, D>,
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
         if self.is_frozen {
@@ -167,11 +167,11 @@ where
     }
 }
 
-fn layer_forward_helper<T>(
-    layer: &Box<dyn Tensor<T>>,
-    input: ArrayViewD<T>,
+fn layer_forward_helper<T, D>(
+    layer: &Box<dyn Tensor<T, D, D>>,
+    input: ArrayView<T, D>,
     is_parallel: bool,
-) -> ArrayD<T>
+) -> Array<T, D>
 where
     T: MLPFloat,
 {

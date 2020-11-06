@@ -47,6 +47,13 @@ where
         self.forward_helper(input, false)
     }
 
+    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D>
+    where
+        T: MLPFloat,
+    {
+        self.forward_helper(input, true)
+    }
+
     fn backward_respect_to_input(
         &self,
         _: ArrayView<T, D>,
@@ -71,13 +78,6 @@ where
             }
         };
         res
-    }
-
-    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D>
-    where
-        T: MLPFloat,
-    {
-        self.forward_helper(input, true)
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {

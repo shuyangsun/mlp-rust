@@ -1,31 +1,31 @@
-extern crate ndarray;
-use super::super::traits::numerical_traits::MLPFloat;
-use super::super::traits::tensor_traits::Tensor;
-use crate::utility::{counter::CounterEst, math::calculate_std_from_variance};
-use ndarray::prelude::*;
+use crate::utility::{
+    array::add_1_dim_to_shape, counter::CounterEst, math::calculate_std_from_variance,
+};
+use crate::{MLPFloat, Tensor};
+use ndarray::{Array, ArrayView, Axis, Dimension, Shape, ShapeBuilder};
 use std::cell::RefCell;
 
-pub struct InputNormalization<T>
+pub struct InputNormalization<T, D>
 where
     T: MLPFloat,
 {
-    size: usize,
-    moving_min: RefCell<Option<ArrayD<T>>>,      // n
-    moving_variance: RefCell<Option<ArrayD<T>>>, // n
-    last_min: RefCell<Option<ArrayD<T>>>,        // n
-    last_variance: RefCell<Option<ArrayD<T>>>,   // n
+    shape: Shape<D>,
+    moving_min: RefCell<Option<Array<T, D>>>,
+    moving_variance: RefCell<Option<Array<T, D>>>,
+    last_min: RefCell<Option<Array<T, D>>>,
+    last_variance: RefCell<Option<Array<T, D>>>,
     moving_batch_size: RefCell<usize>,
     last_batch_size: RefCell<usize>,
 }
 
-impl<T> InputNormalization<T>
+impl<T, D> InputNormalization<T, D>
 where
     T: MLPFloat,
 {
-    fn forward_helper(&self, input: ArrayViewD<T>, is_parallel: bool) -> ArrayD<T> {
+    fn forward_helper(&self, input: ArrayView<T, D>, is_parallel: bool) -> Array<T, D> {
         *self.last_batch_size.borrow_mut() = input.shape()[0];
         let mean = input.mean_axis(Axis(0)).unwrap();
-        let mut variance: ArrayD<T> = (&input - &mean.view()).into_dimensionality().unwrap();
+        let mut variance: Array<T, D> = (&input - &mean.view()).into_dimensionality().unwrap();
         if is_parallel {
             variance.par_mapv_inplace(|ele| ele.powi(2));
         } else {
@@ -37,10 +37,11 @@ where
 
         if self.moving_min.borrow().is_none() {
             *self.moving_batch_size.borrow_mut() = input.shape()[0];
-            *self.moving_min.borrow_mut() = Some(self.last_min.borrow().as_ref().unwrap().clone());
+            *self.moving_min.borrow_mut() =
+                Some(self.last_min.borrow().as_ref().unwrap().into_owned());
             // Assuming moving variance is None as well.
             *self.moving_variance.borrow_mut() =
-                Some(self.last_variance.borrow().as_ref().unwrap().clone());
+                Some(self.last_variance.borrow().as_ref().unwrap().into_owned());
         }
 
         let std_stable = calculate_std_from_variance(
@@ -51,20 +52,20 @@ where
     }
 }
 
-impl<T> Tensor<T> for InputNormalization<T>
+impl<T, D> Tensor<T, D, D> for InputNormalization<T, D>
 where
     T: MLPFloat,
 {
-    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+    fn forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
         self.forward_helper(input, false)
     }
 
-    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
-        unimplemented!() // Should not be ran since it's only on the input layer.
+    fn par_forward(&self, input: ArrayView<T, D>) -> Array<T, D> {
+        self.forward_helper(input, true)
     }
 
-    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.forward_helper(input, true)
+    fn backward_respect_to_input(&self, _: ArrayView<T, D>, _: ArrayView<T, D>) -> Array<T, D> {
+        unimplemented!() // Should not be ran since it's only on the input layer.
     }
 
     fn num_parameters(&self) -> CounterEst<usize> {
@@ -76,13 +77,19 @@ where
     }
 }
 
-impl<T> InputNormalization<T>
+impl<T, D> InputNormalization<T, D>
 where
     T: MLPFloat,
 {
-    pub fn new(size: usize) -> Self {
+    pub fn new<Sh>(shape: Sh) -> Self
+    where
+        D: Dimension,
+        Sh: ShapeBuilder<Dim = D::Smaller>,
+    {
+        let new_shape = add_1_dim_to_shape(shape);
+        assert_eq!(new_shape.size(), shape.size());
         Self {
-            size,
+            shape: new_shape,
             moving_min: RefCell::new(None),
             moving_variance: RefCell::new(None),
             last_min: RefCell::new(None),
@@ -92,12 +99,12 @@ where
         }
     }
 
-    fn update_last_min(&self, mean: ArrayD<T>) {
+    fn update_last_min(&self, mean: Array<T, D>) {
         assert_eq!(mean.len(), self.size);
         *self.last_min.borrow_mut() = Some(mean);
     }
 
-    fn update_last_variance(&self, variance: ArrayD<T>) {
+    fn update_last_variance(&self, variance: Array<T, D>) {
         assert_eq!(variance.len(), self.size);
         *self.last_variance.borrow_mut() = Some(variance);
     }
