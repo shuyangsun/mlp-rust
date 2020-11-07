@@ -191,11 +191,29 @@ mod unit_test {
     }
 
     #[test]
-    fn test_mlp_train() {
+    fn test_mlp_regressor_train() {
         let data = arr2(&vec![[0.5f32, 0.05, 1.], [0.0, 0.0, 0.], [-0.5, -0.5, -1.]]).into_dyn();
         let mut dataset =
             Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
         let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
+        let optimizer = gradient_descent!(0.1f32) as Box<dyn Optimizer<f32>>;
+        println!(
+            "Before train prediction: {:#?}",
+            simple_dnn.predict(dataset.train_data().0)
+        );
+        simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
+        println!(
+            "After train prediction: {:#?}",
+            simple_dnn.predict(dataset.train_data().0)
+        );
+    }
+
+    #[test]
+    fn test_mlp_classifier_train() {
+        let data = arr2(&vec![[0.5f32, 0.05, 0.], [0.0, 1.0, 0.], [-0.5, -0.5, 1.]]).into_dyn();
+        let mut dataset =
+            Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
+        let mut simple_dnn = MLP::new_classifier(2, 1, vec![25, 4], Activation::ReLu, false, false);
         let optimizer = gradient_descent!(0.1f32) as Box<dyn Optimizer<f32>>;
         println!(
             "Before train prediction: {:#?}",
