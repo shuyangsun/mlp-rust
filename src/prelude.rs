@@ -1,5 +1,5 @@
 pub use crate::{
-    Activation, BatchNormalization, Bias, DataSetInMemory, Dense, GradientDescent,
+    Activation, BatchNormalization, Bias, DataSet, DataSetInMemory, Dense, GradientDescent,
     InputNormalization, LayerChain, Loss, Model, Optimizer, Serial, Tensor, MLP,
 };
 

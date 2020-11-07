@@ -1,7 +1,5 @@
-extern crate ndarray;
-use super::numerical_traits::MLPFloat;
-use ndarray::prelude::*;
-use ndarray::Zip;
+use crate::MLPFloat;
+use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD, Axis, Zip};
 
 pub trait Optimizer<T>
 where

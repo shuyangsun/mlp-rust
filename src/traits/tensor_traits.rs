@@ -1,8 +1,7 @@
-extern crate ndarray;
-use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
+use crate::Optimizer;
 use downcast_rs::{impl_downcast, Downcast};
-use ndarray::prelude::*;
+use ndarray::{ArrayD, ArrayViewD};
 
 pub trait Tensor<T>: Downcast {
     fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T>;

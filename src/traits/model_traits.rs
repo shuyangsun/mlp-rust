@@ -1,5 +1,5 @@
 use crate::{DataSet, Optimizer};
-use ndarray::{ArrayD, ArrayView, ArrayViewD, IxDyn};
+use ndarray::{ArrayD, ArrayViewD, IxDyn};
 
 pub trait Model<T> {
     fn train<'dset, 'dview, 'model>(

@@ -113,8 +113,6 @@ where
 #[cfg(test)]
 mod unit_test {
     use crate::prelude::*;
-    extern crate ndarray;
-    use crate::DataSet;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -192,16 +190,17 @@ mod unit_test {
             Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
         let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
         // let mut simple_dnn = generate_simple_dnn(2, 2);
+        let train_input = dataset.train_data().input;
         println!(
             "Before train prediction: {:#?}",
-            simple_dnn.predict(dataset.train_data().input)
+            simple_dnn.predict(train_input)
         );
-        // let optimizer = gradient_descent!(0.1f32);
-        let optimizer = Box::new(GradientDescent::new(0.1f32)) as Box<dyn Optimizer<f32>>;
-        simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
-        println!(
-            "After train prediction: {:#?}",
-            simple_dnn.predict(dataset.train_data().input)
-        );
+        // // let optimizer = gradient_descent!(0.1f32);
+        // let optimizer = Box::new(GradientDescent::new(0.1f32)) as Box<dyn Optimizer<f32>>;
+        // simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
+        // println!(
+        //     "After train prediction: {:#?}",
+        //     simple_dnn.predict(dataset.train_data().input)
+        // );
     }
 }

@@ -76,10 +76,7 @@ macro_rules! bias {
 
 #[cfg(test)]
 mod unit_test {
-    extern crate ndarray;
-
-    use super::super::super::traits::tensor_traits::Tensor;
-    use super::Bias;
+    use crate::prelude::*;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;

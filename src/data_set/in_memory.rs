@@ -114,9 +114,6 @@ where
 #[cfg(test)]
 mod unit_test {
     use crate::prelude::*;
-    extern crate ndarray;
-
-    use crate::DataSet;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;

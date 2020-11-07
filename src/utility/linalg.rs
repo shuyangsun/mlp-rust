@@ -1,11 +1,7 @@
-extern crate ndarray;
-extern crate num_cpus;
-use ndarray::prelude::*;
-use ndarray::{stack, Slice};
+use crate::MLPFloat;
+use ndarray::{stack, Array, Array2, ArrayView, ArrayView2, Axis, Dimension, RemoveAxis, Slice};
+use num_cpus;
 use rayon::prelude::*;
-
-use self::ndarray::RemoveAxis;
-use super::super::traits::numerical_traits::MLPFloat;
 
 pub fn mat_mul<T>(lhs: &ArrayView2<T>, rhs: &ArrayView2<T>) -> Array2<T>
 where
@@ -75,8 +71,6 @@ where
 
 #[cfg(test)]
 mod unit_test {
-    extern crate ndarray;
-
     use super::{mat_mul, par_mat_mul};
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;

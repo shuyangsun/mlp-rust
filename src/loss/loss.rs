@@ -1,7 +1,6 @@
-extern crate ndarray;
-use crate::traits::numerical_traits::MLPFloat;
 use crate::utility::math::to_2d_view;
-use ndarray::prelude::*;
+use crate::MLPFloat;
+use ndarray::{ArrayD, ArrayView1, ArrayViewD, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
