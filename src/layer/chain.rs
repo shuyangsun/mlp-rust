@@ -1,6 +1,6 @@
 use crate::utility::counter::CounterEst;
 use crate::{Dense, MLPFloat, Optimizer, Tensor};
-use ndarray::prelude::*;
+use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
 
 pub struct LayerChain<T>

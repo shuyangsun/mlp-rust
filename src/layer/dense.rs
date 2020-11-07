@@ -1,10 +1,8 @@
-extern crate ndarray;
-use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::traits::tensor_traits::Tensor;
-use super::super::utility::{linalg::mat_mul, linalg::par_mat_mul, math::to_2d_view};
-use crate::traits::optimizer_traits::Optimizer;
-use crate::utility::counter::CounterEst;
-use ndarray::prelude::*;
+use super::super::utility::{
+    counter::CounterEst, linalg::mat_mul, linalg::par_mat_mul, math::to_2d_view,
+};
+use crate::{MLPFLoatRandSampling, MLPFloat, Optimizer, Tensor};
+use ndarray::{Array2, ArrayD, ArrayView2, ArrayViewD};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
 
@@ -76,7 +74,7 @@ where
     pub fn new_random_uniform(from_layer_size: usize, to_layer_size: usize) -> Self {
         Self {
             is_frozen: false,
-            weight_mat: Array::random(
+            weight_mat: Array2::random(
                 (from_layer_size, to_layer_size),
                 Uniform::new(-T::one(), T::one()),
             )

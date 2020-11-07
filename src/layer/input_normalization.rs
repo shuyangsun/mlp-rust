@@ -1,8 +1,6 @@
-extern crate ndarray;
-use super::super::traits::numerical_traits::MLPFloat;
-use super::super::traits::tensor_traits::Tensor;
 use crate::utility::{counter::CounterEst, math::calculate_std_from_variance};
-use ndarray::prelude::*;
+use crate::{MLPFloat, Tensor};
+use ndarray::{ArrayD, ArrayViewD, Axis};
 use std::cell::RefCell;
 
 pub struct InputNormalization<T>

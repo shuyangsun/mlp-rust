@@ -1,9 +1,6 @@
-extern crate ndarray;
-use super::super::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use super::super::traits::tensor_traits::Tensor;
-use crate::traits::optimizer_traits::Optimizer;
 use crate::utility::counter::CounterEst;
-use ndarray::prelude::*;
+use crate::{MLPFLoatRandSampling, MLPFloat, Optimizer, Tensor};
+use ndarray::{Array2, ArrayD, ArrayViewD};
 
 pub struct Bias<T>
 where
