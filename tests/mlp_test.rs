@@ -80,7 +80,7 @@ fn test_mlp_regressor_train() {
         "Before train prediction: {:#?}",
         simple_dnn.predict(dataset.train_data().0)
     );
-    simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
+    simple_dnn.train(&mut dataset, 2, 100, &optimizer, false);
     println!(
         "After train prediction: {:#?}",
         simple_dnn.predict(dataset.train_data().0)
@@ -98,7 +98,7 @@ fn test_mlp_classifier_train() {
         "Before train prediction: {:#?}",
         simple_dnn.predict(dataset.train_data().0)
     );
-    simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
+    simple_dnn.train(&mut dataset, 2, 100, &optimizer, false);
     println!(
         "After train prediction: {:#?}",
         simple_dnn.predict(dataset.train_data().0)
