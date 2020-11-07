@@ -1,14 +1,10 @@
-use crate::data_set::utility::{DataBatch, InputOutputData};
+use ndarray::ArrayViewD;
 
-pub trait DataSet<'dset, 'dview, T, D>
-where
-    T: 'static,
-    'dset: 'dview,
-{
-    fn next_train_batch(&'dset self, batch_size: usize) -> DataBatch<'dview, T, D>;
+pub trait DataSet<T, D> {
+    fn next_train_batch(&self, batch_size: usize) -> Vec<(ArrayViewD<T>, ArrayViewD<T>)>;
 
-    fn train_data(&'dset self) -> InputOutputData<'dview, T, D>;
-    fn test_data(&'dset self) -> InputOutputData<'dview, T, D>;
+    fn train_data(&self) -> (ArrayViewD<T>, ArrayViewD<T>);
+    fn test_data(&self) -> (ArrayViewD<T>, ArrayViewD<T>);
 
     fn num_samples(&self) -> usize;
 

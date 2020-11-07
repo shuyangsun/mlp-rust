@@ -96,16 +96,14 @@ impl<T> Model<T> for MLP<T>
 where
     T: MLPFloat,
 {
-    fn train<'dset, 'dview, 'model>(
-        &'model mut self,
-        data: &'dset mut Box<dyn DataSet<'dset, 'dview, T, IxDyn>>,
+    fn train(
+        &mut self,
+        data: &mut Box<dyn DataSet<T, IxDyn>>,
         batch_size: usize,
         max_num_epoch: usize,
         optimizer: &Box<dyn Optimizer<T>>,
         should_print: bool,
-    ) where
-        'dset: 'dview,
-    {
+    ) {
         self.serial_model
             .train(data, batch_size, max_num_epoch, optimizer, should_print)
     }
@@ -195,20 +193,18 @@ mod unit_test {
     #[test]
     fn test_mlp_train() {
         let data = arr2(&vec![[0.5f32, 0.05, 1.], [0.0, 0.0, 0.], [-0.5, -0.5, -1.]]).into_dyn();
-        // let mut dataset =
-        //     Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
-        // let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
-        // let train_input = dataset.train_data().input;
-        // println!(
-        //     "Before train prediction: {:#?}",
-        //     simple_dnn.predict(train_input)
-        // );
-        // // let optimizer = gradient_descent!(0.1f32);
-        // let optimizer = Box::new(GradientDescent::new(0.1f32)) as Box<dyn Optimizer<f32>>;
-        // simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
-        // println!(
-        //     "After train prediction: {:#?}",
-        //     simple_dnn.predict(dataset.train_data().input)
-        // );
+        let mut dataset =
+            Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
+        let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
+        let optimizer = gradient_descent!(0.1f32) as Box<dyn Optimizer<f32>>;
+        println!(
+            "Before train prediction: {:#?}",
+            simple_dnn.predict(dataset.train_data().0)
+        );
+        simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
+        println!(
+            "After train prediction: {:#?}",
+            simple_dnn.predict(dataset.train_data().0)
+        );
     }
 }

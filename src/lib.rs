@@ -7,7 +7,7 @@ pub mod prelude;
 mod traits;
 mod utility;
 
-pub use self::data_set::{in_memory::DataSetInMemory, utility::InputOutputData};
+pub use self::data_set::in_memory::DataSetInMemory;
 pub use self::layer::{
     activation::Activation, batch_normalization::BatchNormalization, bias::Bias, chain::LayerChain,
     dense::Dense, input_normalization::InputNormalization,

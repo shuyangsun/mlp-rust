@@ -1,7 +1,6 @@
-use crate::data_set::utility::DataBatch;
 use crate::utility::math::{shuffle_array, shuffle_array_within_range};
-use crate::{DataSet, InputOutputData, MLPFloat};
-use ndarray::{s, Array, ArrayD, ArrayView, Dimension, RemoveAxis};
+use crate::{DataSet, MLPFloat};
+use ndarray::{s, Array, ArrayD, ArrayViewD, Dimension, RemoveAxis};
 use std::marker::PhantomData;
 
 pub struct DataSetInMemory<T, D> {
@@ -44,54 +43,69 @@ where
     }
 }
 
-impl<'dset, 'dview, T, D> DataSet<'dset, 'dview, T, D> for DataSetInMemory<T, D>
+impl<T, D> DataSet<T, D> for DataSetInMemory<T, D>
 where
     T: MLPFloat,
     D: Dimension,
-    'dset: 'dview,
 {
-    fn next_train_batch(&'dset self, batch_size: usize) -> DataBatch<'dview, T, D> {
-        DataBatch::new(&self.data, batch_size, self.output_size)
+    fn next_train_batch(&self, batch_size: usize) -> Vec<(ArrayViewD<T>, ArrayViewD<T>)> {
+        let mut res = Vec::new();
+        let (n_samples, train_cols) = (
+            self.train_data().0.shape()[0],
+            self.train_data().0.shape()[1],
+        );
+        let mut cur_start_idx = 0usize;
+        while cur_start_idx < n_samples {
+            let start_row_idx = cur_start_idx;
+            let end_row_idx = std::cmp::min(cur_start_idx + batch_size, n_samples);
+            let input = self
+                .data
+                .slice(s![start_row_idx..end_row_idx, ..train_cols])
+                .into_dyn();
+            let output = self
+                .data
+                .slice(s![start_row_idx..end_row_idx, train_cols..])
+                .into_dyn();
+            res.push((input, output));
+            cur_start_idx = end_row_idx;
+        }
+        res
     }
 
-    fn train_data(&'dset self) -> InputOutputData<'dview, T, D> {
-        let input: ArrayView<'dview, T, D> = self
+    fn train_data(&self) -> (ArrayViewD<T>, ArrayViewD<T>) {
+        let input = self
             .data
             .slice(s![
                 ..self.num_training_samples(),
                 ..self.data.shape()[1] - self.output_size
             ])
-            .into_dimensionality::<D>()
-            .unwrap();
-        let output: ArrayView<'dview, T, D> = self
+            .into_dyn();
+        let output = self
             .data
             .slice(s![
                 ..self.num_training_samples(),
                 self.data.shape()[1] - self.output_size..
             ])
-            .into_dimensionality::<D>()
-            .unwrap();
-        InputOutputData::<'dview, T, D>::new(input, output)
+            .into_dyn();
+        (input, output)
     }
 
-    fn test_data(&'dset self) -> InputOutputData<'dview, T, D> {
-        let input: ArrayView<'dview, T, D> = self
+    fn test_data(&self) -> (ArrayViewD<T>, ArrayViewD<T>) {
+        let input = self
             .data
             .slice(s![
                 self.num_training_samples()..self.num_samples(),
                 ..self.data.shape()[1] - self.output_size
             ])
-            .into_dimensionality::<D>()
-            .unwrap();
-        let output: ArrayView<'dview, T, D> = self
+            .into_dyn();
+        let output = self
             .data
             .slice(s![
                 self.num_training_samples()..self.num_samples(),
                 self.data.shape()[1] - self.output_size..
             ])
-            .into_dimensionality::<D>()
-            .unwrap();
-        InputOutputData::<'dview, T, D>::new(input, output)
+            .into_dyn();
+        (input, output)
     }
 
     fn num_samples(&self) -> usize {
@@ -122,13 +136,14 @@ mod unit_test {
     fn test_data_set_1() {
         let shape = [997, 10];
         let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
-        let dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
+        let mut dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
         assert_eq!(dataset.num_samples(), shape[0]);
         assert_eq!(dataset.num_training_samples(), 598);
         assert_eq!(dataset.num_test_samples(), 399);
         let test_data = dataset.test_data();
-        assert_eq!(test_data.input.shape()[0], 399);
-        assert_eq!(test_data.output.shape()[0], test_data.input.shape()[0]);
+        assert_eq!(test_data.0.shape()[0], 399);
+        assert_eq!(test_data.1.shape()[0], test_data.0.shape()[0]);
+        dataset.update_test_data_ratio(0.);
 
         let batch_size = 100usize;
         let mut total_sample = 0usize;
@@ -137,9 +152,9 @@ mod unit_test {
             if counter > 10 {
                 break;
             }
-            assert_eq!(batch.input.shape()[0], batch.output.shape()[0]);
-            assert!(batch.input.shape()[0] <= batch_size);
-            total_sample += batch.input.shape()[0];
+            assert_eq!(batch.0.shape()[0], batch.1.shape()[0]);
+            assert!(batch.0.shape()[0] <= batch_size);
+            total_sample += batch.0.shape()[0];
             counter += 1;
         }
         assert_eq!(total_sample, shape[0]);
@@ -151,21 +166,21 @@ mod unit_test {
         let input_data = Array::random(shape, Uniform::new(-1., 1.)).into_dyn();
         let mut dataset = DataSetInMemory::new(input_data, 2, 0.4, true);
         let (train_1_input, train_1_output) = (
-            dataset.train_data().input.into_owned(),
-            dataset.train_data().output.into_owned(),
+            dataset.train_data().0.into_owned(),
+            dataset.train_data().1.into_owned(),
         );
         let (test_1_input, test_1_output) = (
-            dataset.test_data().input.into_owned(),
-            dataset.test_data().output.into_owned(),
+            dataset.test_data().0.into_owned(),
+            dataset.test_data().1.into_owned(),
         );
         dataset.shuffle_train();
         let (train_2_input, train_2_output) = (
-            dataset.train_data().input.into_owned(),
-            dataset.train_data().output.into_owned(),
+            dataset.train_data().0.into_owned(),
+            dataset.train_data().1.into_owned(),
         );
         let (test_2_input, test_2_output) = (
-            dataset.test_data().input.into_owned(),
-            dataset.test_data().output.into_owned(),
+            dataset.test_data().0.into_owned(),
+            dataset.test_data().1.into_owned(),
         );
         assert_ne!(train_1_input, train_2_input);
         assert_ne!(train_1_output, train_2_output);
@@ -173,12 +188,12 @@ mod unit_test {
         assert_eq!(test_1_output, test_2_output);
         dataset.shuffle_all();
         let (train_3_input, train_3_output) = (
-            dataset.train_data().input.into_owned(),
-            dataset.train_data().output.into_owned(),
+            dataset.train_data().0.into_owned(),
+            dataset.train_data().1.into_owned(),
         );
         let (test_3_input, test_3_output) = (
-            dataset.test_data().input.into_owned(),
-            dataset.test_data().output.into_owned(),
+            dataset.test_data().0.into_owned(),
+            dataset.test_data().1.into_owned(),
         );
         assert_ne!(train_3_input, train_2_input);
         assert_ne!(train_3_output, train_2_output);

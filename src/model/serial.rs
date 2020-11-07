@@ -52,43 +52,38 @@ impl<T> Model<T> for Serial<T>
 where
     T: MLPFloat,
 {
-    fn train<'dset, 'dview, 'model>(
-        &'model mut self,
-        data: &'dset mut Box<dyn DataSet<'dset, 'dview, T, IxDyn>>,
+    fn train(
+        &mut self,
+        data: &mut Box<dyn DataSet<T, IxDyn>>,
         batch_size: usize,
         max_num_epoch: usize,
         optimizer: &Box<dyn Optimizer<T>>,
         should_print: bool,
-    ) where
-        'dset: 'dview,
-    {
+    ) {
         let mut cur_iter = 0usize;
         for cur_epoch in 0..max_num_epoch {
             for batch in data.next_train_batch(batch_size) {
-                let forward_res = self.layer_chain.forward(batch.input.clone());
-                assert_eq!(forward_res.shape(), batch.output.shape());
+                let forward_res = self.layer_chain.forward(batch.0.clone());
+                assert_eq!(forward_res.shape(), batch.1.shape());
                 let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
                 let mut gradient = self.loss_function.backward_with_respect_to_input(
                     forward_res.view(),
-                    batch.output.clone(),
+                    batch.1.clone(),
                     true,
                 );
                 gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
                 if should_print {
                     let cur_loss =
                         self.loss_function
-                            .calculate_loss(forward_res.view(), batch.output, true)
+                            .calculate_loss(forward_res.view(), batch.1, true)
                             + l2_reg_cost;
                     println!("epoch {}, iter {}, loss={}", cur_epoch, cur_iter, cur_loss);
                 }
-                self.layer_chain.backward_update_check_frozen(
-                    batch.input,
-                    gradient.view(),
-                    optimizer,
-                );
+                self.layer_chain
+                    .backward_update_check_frozen(batch.0, gradient.view(), optimizer);
                 cur_iter += 1;
             }
-            // data.shuffle_train();
+            data.shuffle_train();
         }
     }
 
