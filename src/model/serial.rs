@@ -63,7 +63,7 @@ where
         let mut cur_iter = 0usize;
         for cur_epoch in 0..max_num_epoch {
             for batch in data.next_train_batch(batch_size) {
-                let forward_res = self.layer_chain.forward(batch.0.clone());
+                let forward_res = self.layer_chain.par_forward(batch.0.clone());
                 assert_eq!(forward_res.shape(), batch.1.shape());
                 let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
                 let mut gradient = self.loss_function.backward_with_respect_to_input(

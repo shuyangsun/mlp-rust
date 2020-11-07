@@ -1,6 +1,6 @@
 use crate::utility::counter::CounterEst;
 use crate::{MLPFLoatRandSampling, MLPFloat, Optimizer, Tensor};
-use ndarray::{Array2, ArrayD, ArrayViewD};
+use ndarray::{Array2, ArrayD, ArrayViewD, Zip};
 
 pub struct Bias<T>
 where
@@ -25,6 +25,15 @@ where
         layer_output: ArrayViewD<T>,
     ) -> ArrayD<T> {
         layer_output.into_owned()
+    }
+
+    fn par_forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        let bias_arr_broadcasted_view = self.bias_arr.broadcast(input.dim()).unwrap();
+        let mut res = input.into_owned();
+        Zip::from(&mut res)
+            .and(&bias_arr_broadcasted_view)
+            .apply(|a, &b| *a = *a + b);
+        res
     }
 
     fn is_frozen(&self) -> bool {
