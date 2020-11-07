@@ -119,7 +119,7 @@ mod unit_test {
         MLP::new_classifier(
             input_size,
             output_size,
-            vec![4096, 2048, 1024, 512, 256, 128, 10],
+            vec![512, 256, 128, 10],
             Activation::TanH,
             true,
             false,
@@ -162,7 +162,7 @@ mod unit_test {
     }
 
     #[test]
-    fn test_model_predict_stress() {
+    fn test_mlp_predict_stress() {
         let shape = &[100usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
@@ -172,7 +172,7 @@ mod unit_test {
     }
 
     #[test]
-    fn test_model_par_predict_stress() {
+    fn test_mlp_par_predict_stress() {
         let shape = &[1000usize, 1024];
         let output_size = 10;
         let input_data = Array::random(shape.clone(), Uniform::new(0., 10.)).into_dyn();
@@ -182,7 +182,7 @@ mod unit_test {
     }
 
     #[test]
-    fn test_model_train() {
+    fn test_mlp_train() {
         let input_data = arr2(&vec![
             [0.5f32, 0.05f32],
             [0.0f32, 0.0f32],
