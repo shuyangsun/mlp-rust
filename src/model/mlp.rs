@@ -1,3 +1,4 @@
+use crate::utility::counter::CounterEst;
 use crate::{
     batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, DataSet, Dense,
     InputNormalization, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Serial, Tensor,
@@ -80,6 +81,14 @@ where
             should_use_batch_norm,
             Loss::MSE,
         )
+    }
+
+    pub fn num_param(&self) -> CounterEst<usize> {
+        self.serial_model.num_param()
+    }
+
+    pub fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        self.serial_model.num_operations_per_forward()
     }
 }
 
@@ -186,15 +195,14 @@ mod unit_test {
     #[test]
     fn test_mlp_train() {
         let data = arr2(&vec![[0.5f32, 0.05, 1.], [0.0, 0.0, 0.], [-0.5, -0.5, -1.]]).into_dyn();
-        let mut dataset =
-            Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
-        let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
-        // let mut simple_dnn = generate_simple_dnn(2, 2);
-        let train_input = dataset.train_data().input;
-        println!(
-            "Before train prediction: {:#?}",
-            simple_dnn.predict(train_input)
-        );
+        // let mut dataset =
+        //     Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
+        // let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
+        // let train_input = dataset.train_data().input;
+        // println!(
+        //     "Before train prediction: {:#?}",
+        //     simple_dnn.predict(train_input)
+        // );
         // // let optimizer = gradient_descent!(0.1f32);
         // let optimizer = Box::new(GradientDescent::new(0.1f32)) as Box<dyn Optimizer<f32>>;
         // simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
