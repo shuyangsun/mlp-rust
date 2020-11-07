@@ -38,31 +38,24 @@ where
         res
     }
 
-    pub fn shuffle_all(&mut self) {
-        shuffle_array(&mut self.data)
-    }
-
-    pub fn shuffle_train(&mut self) {
-        shuffle_array_within_range(&mut self.data, 0..self.training_sample_size)
-    }
-
     pub fn update_test_data_ratio(&mut self, test_data_ratio: f64) {
         self.training_sample_size =
             (self.data.shape()[0] as f64 * (1. - test_data_ratio)).floor() as usize;
     }
 }
 
-impl<'data, T, D> DataSet<'data, T, D> for DataSetInMemory<T, D>
+impl<'dset, 'dview, T, D> DataSet<'dset, 'dview, T, D> for DataSetInMemory<T, D>
 where
-    T: 'static,
+    T: MLPFloat,
     D: Dimension,
+    'dset: 'dview,
 {
-    fn next_train_batch(&'data self, batch_size: usize) -> DataBatch<'data, T, D> {
+    fn next_train_batch(&'dset self, batch_size: usize) -> DataBatch<'dview, T, D> {
         DataBatch::new(&self.data, batch_size, self.output_size)
     }
 
-    fn train_data(&'data self) -> InputOutputData<'data, T, D> {
-        let input: ArrayView<'data, T, D> = self
+    fn train_data(&'dset self) -> InputOutputData<'dview, T, D> {
+        let input: ArrayView<'dview, T, D> = self
             .data
             .slice(s![
                 ..self.num_training_samples(),
@@ -70,7 +63,7 @@ where
             ])
             .into_dimensionality::<D>()
             .unwrap();
-        let output: ArrayView<'data, T, D> = self
+        let output: ArrayView<'dview, T, D> = self
             .data
             .slice(s![
                 ..self.num_training_samples(),
@@ -78,11 +71,11 @@ where
             ])
             .into_dimensionality::<D>()
             .unwrap();
-        InputOutputData::<'data, T, D>::new(input, output)
+        InputOutputData::<'dview, T, D>::new(input, output)
     }
 
-    fn test_data(&'data self) -> InputOutputData<'data, T, D> {
-        let input: ArrayView<'data, T, D> = self
+    fn test_data(&'dset self) -> InputOutputData<'dview, T, D> {
+        let input: ArrayView<'dview, T, D> = self
             .data
             .slice(s![
                 self.num_training_samples()..self.num_samples(),
@@ -90,7 +83,7 @@ where
             ])
             .into_dimensionality::<D>()
             .unwrap();
-        let output: ArrayView<'data, T, D> = self
+        let output: ArrayView<'dview, T, D> = self
             .data
             .slice(s![
                 self.num_training_samples()..self.num_samples(),
@@ -98,7 +91,7 @@ where
             ])
             .into_dimensionality::<D>()
             .unwrap();
-        InputOutputData::<'data, T, D>::new(input, output)
+        InputOutputData::<'dview, T, D>::new(input, output)
     }
 
     fn num_samples(&self) -> usize {
@@ -107,6 +100,14 @@ where
 
     fn num_training_samples(&self) -> usize {
         self.training_sample_size
+    }
+
+    fn shuffle_all(&mut self) {
+        shuffle_array(&mut self.data)
+    }
+
+    fn shuffle_train(&mut self) {
+        shuffle_array_within_range(&mut self.data, 0..self.training_sample_size)
     }
 }
 

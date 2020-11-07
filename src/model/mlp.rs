@@ -1,8 +1,8 @@
 use crate::{
-    batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, Dense,
+    batch_norm, bias, dense, input_norm, Activation, BatchNormalization, Bias, DataSet, Dense,
     InputNormalization, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Serial, Tensor,
 };
-use ndarray::{ArrayD, ArrayViewD};
+use ndarray::{ArrayD, ArrayViewD, IxDyn};
 
 pub struct MLP<T>
 where
@@ -87,15 +87,18 @@ impl<T> Model<T> for MLP<T>
 where
     T: MLPFloat,
 {
-    fn train(
-        &mut self,
-        max_num_iter: usize,
+    fn train<'dset, 'dview, 'model>(
+        &'model mut self,
+        data: &'dset mut Box<dyn DataSet<'dset, 'dview, T, IxDyn>>,
+        batch_size: usize,
+        max_num_epoch: usize,
         optimizer: &Box<dyn Optimizer<T>>,
-        input: ArrayViewD<T>,
-        expected_output: ArrayViewD<T>,
-    ) {
+        should_print: bool,
+    ) where
+        'dset: 'dview,
+    {
         self.serial_model
-            .train(max_num_iter, optimizer, input, expected_output)
+            .train(data, batch_size, max_num_epoch, optimizer, should_print)
     }
 
     fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
@@ -111,6 +114,7 @@ where
 mod unit_test {
     use crate::prelude::*;
     extern crate ndarray;
+    use crate::DataSet;
     use ndarray::prelude::*;
     use ndarray_rand::rand_distr::Uniform;
     use ndarray_rand::RandomExt;
@@ -183,28 +187,21 @@ mod unit_test {
 
     #[test]
     fn test_mlp_train() {
-        let input_data = arr2(&vec![
-            [0.5f32, 0.05f32],
-            [0.0f32, 0.0f32],
-            [-0.5f32, -0.5f32],
-        ])
-        .into_dyn();
-        let output_data = arr2(&vec![[1.0f32], [0.0f32], [-1.0f32]]).into_dyn();
+        let data = arr2(&vec![[0.5f32, 0.05, 1.], [0.0, 0.0, 0.], [-0.5, -0.5, -1.]]).into_dyn();
+        let mut dataset =
+            Box::new(DataSetInMemory::new(data, 1, 1., false)) as Box<dyn DataSet<f32, IxDyn>>;
         let mut simple_dnn = MLP::new_regressor(2, 1, vec![25, 4], Activation::ReLu, false, false);
         // let mut simple_dnn = generate_simple_dnn(2, 2);
         println!(
             "Before train prediction: {:#?}",
-            simple_dnn.predict(input_data.view())
+            simple_dnn.predict(dataset.train_data().input)
         );
-        simple_dnn.train(
-            1000,
-            &gradient_descent!(0.01f32),
-            input_data.view(),
-            output_data.view(),
-        );
+        // let optimizer = gradient_descent!(0.1f32);
+        let optimizer = Box::new(GradientDescent::new(0.1f32)) as Box<dyn Optimizer<f32>>;
+        simple_dnn.train(&mut dataset, 2, 100, &optimizer, true);
         println!(
             "After train prediction: {:#?}",
-            simple_dnn.predict(input_data.view())
+            simple_dnn.predict(dataset.train_data().input)
         );
     }
 }

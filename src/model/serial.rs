@@ -1,11 +1,6 @@
-use crate::layer::chain::LayerChain;
-use crate::loss::loss::Loss;
-use crate::traits::model_traits::Model;
-use crate::traits::numerical_traits::{MLPFLoatRandSampling, MLPFloat};
-use crate::traits::optimizer_traits::Optimizer;
-use crate::traits::tensor_traits::Tensor;
 use crate::utility::counter::CounterEst;
-use ndarray::{ArrayD, ArrayViewD};
+use crate::{DataSet, LayerChain, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Tensor};
+use ndarray::{ArrayD, ArrayViewD, IxDyn};
 
 pub struct Serial<T>
 where
@@ -57,40 +52,43 @@ impl<T> Model<T> for Serial<T>
 where
     T: MLPFloat,
 {
-    fn train(
-        &mut self,
-        max_num_iter: usize,
+    fn train<'dset, 'dview, 'model>(
+        &'model mut self,
+        data: &'dset mut Box<dyn DataSet<'dset, 'dview, T, IxDyn>>,
+        batch_size: usize,
+        max_num_epoch: usize,
         optimizer: &Box<dyn Optimizer<T>>,
-        input: ArrayViewD<T>,
-        expected_output: ArrayViewD<T>,
-    ) {
-        // TODD: clones below are temp var for testing.
-        let input_clone = input.clone();
-        let expected_output_clone = expected_output.clone();
-        for i in 0..max_num_iter {
-            let forward_res = self.layer_chain.forward(input_clone.view());
-            assert_eq!(forward_res.shape(), expected_output_clone.shape());
-            let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
-            let mut gradient = self.loss_function.backward_with_respect_to_input(
-                forward_res.view(),
-                expected_output_clone.view(),
-                true,
-            );
-            gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
-            println!(
-                "Iter {}: loss={}",
-                i,
-                self.loss_function.calculate_loss(
+        should_print: bool,
+    ) where
+        'dset: 'dview,
+    {
+        let mut cur_iter = 0usize;
+        for cur_epoch in 0..max_num_epoch {
+            for batch in data.next_train_batch(batch_size) {
+                let forward_res = self.layer_chain.forward(batch.input.clone());
+                assert_eq!(forward_res.shape(), batch.output.shape());
+                let l2_reg_cost = T::from_f32(0.0).unwrap() * self.layer_chain.dense_l2_sum();
+                let mut gradient = self.loss_function.backward_with_respect_to_input(
                     forward_res.view(),
-                    expected_output_clone.view(),
-                    true
-                ) + l2_reg_cost
-            );
-            self.layer_chain.backward_update_check_frozen(
-                input_clone.view(),
-                gradient.view(),
-                optimizer,
-            );
+                    batch.output.clone(),
+                    true,
+                );
+                gradient.par_mapv_inplace(|ele| ele + l2_reg_cost);
+                if should_print {
+                    let cur_loss =
+                        self.loss_function
+                            .calculate_loss(forward_res.view(), batch.output, true)
+                            + l2_reg_cost;
+                    println!("epoch {}, iter {}, loss={}", cur_epoch, cur_iter, cur_loss);
+                }
+                self.layer_chain.backward_update_check_frozen(
+                    batch.input,
+                    gradient.view(),
+                    optimizer,
+                );
+                cur_iter += 1;
+            }
+            // data.shuffle_train();
         }
     }
 
