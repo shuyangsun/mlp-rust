@@ -45,7 +45,7 @@ where
         optimizer: &Box<dyn Optimizer<T>>,
     ) {
         let weight_gradient =
-            mat_mul(&to_2d_view(input).t(), &to_2d_view(output_gradient)).into_dyn();
+            par_mat_mul(&to_2d_view(input).t(), &to_2d_view(output_gradient)).into_dyn();
         optimizer.change_values(&mut self.weight_mat.view_mut(), weight_gradient.view());
     }
 
