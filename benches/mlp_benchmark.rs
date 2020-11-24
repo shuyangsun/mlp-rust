@@ -184,9 +184,6 @@ fn mlp_forward_benchmark_large_network_large_sample_f32(c: &mut Criterion) {
             false,
             false,
         );
-        group.bench_with_input(BenchmarkId::new("Serial", size), size, |b, _| {
-            b.iter(|| simple_dnn.predict(dataset.train_data().0))
-        });
         group.bench_with_input(BenchmarkId::new("Parallel", size), size, |b, _| {
             b.iter(|| simple_dnn.par_predict(dataset.train_data().0))
         });
@@ -236,9 +233,6 @@ fn mlp_forward_benchmark_large_network_large_sample_f64(c: &mut Criterion) {
             false,
             false,
         );
-        group.bench_with_input(BenchmarkId::new("Serial", size), size, |b, _| {
-            b.iter(|| simple_dnn.predict(dataset.train_data().0))
-        });
         group.bench_with_input(BenchmarkId::new("Parallel", size), size, |b, _| {
             b.iter(|| simple_dnn.par_predict(dataset.train_data().0))
         });
