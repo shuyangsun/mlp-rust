@@ -170,6 +170,7 @@ fn mlp_forward_benchmark_large_network_small_sample_f32(c: &mut Criterion) {
 
 fn mlp_forward_benchmark_large_network_large_sample_f32(c: &mut Criterion) {
     let mut group = c.benchmark_group("LL32");
+    group.sample_size(10);
     let feature_size = 28 * 28;
     let output_size = 1;
 
@@ -219,6 +220,7 @@ fn mlp_forward_benchmark_large_network_small_sample_f64(c: &mut Criterion) {
 
 fn mlp_forward_benchmark_large_network_large_sample_f64(c: &mut Criterion) {
     let mut group = c.benchmark_group("LL64");
+    group.sample_size(10);
     let feature_size = 28 * 28;
     let output_size = 1;
 
