@@ -91,6 +91,10 @@ where
             Self::LeakyReLu => 1,
         })
     }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(self.clone())
+    }
 }
 
 #[macro_export]

@@ -47,6 +47,8 @@ pub trait Tensor<T>: Downcast {
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::None
     }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync>;
 }
 
 impl_downcast!(Tensor<T>);

@@ -1,4 +1,4 @@
-use crate::utility::counter::CounterEst;
+use crate::utility::{counter::CounterEst, linalg::par_arr_operation};
 use crate::{Dense, MLPFloat, Optimizer, Tensor};
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
@@ -41,7 +41,9 @@ where
     }
 
     pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.forward_helper(input, false, true)
+        par_arr_operation(&input, |arr: &ArrayViewD<T>| {
+            self.forward_helper(arr.clone(), false, false)
+        })
     }
 
     pub fn dense_l2_sum(&self) -> T {

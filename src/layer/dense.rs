@@ -56,6 +56,13 @@ where
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::Accurate(self.weight_mat.len() * 2 - self.weight_mat.shape()[0])
     }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(Self {
+            is_frozen: true,
+            weight_mat: self.weight_mat.into_owned(),
+        })
+    }
 }
 
 impl<T> Dense<T>

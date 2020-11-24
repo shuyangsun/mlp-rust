@@ -23,7 +23,7 @@ where
     par_arr_operation(&lhs, |lhs_sub: &ArrayView2<T>| mat_mul(lhs_sub, &rhs))
 }
 
-fn par_arr_operation<'a, T, D, F>(arr_view: &'a ArrayView<T, D>, operation: F) -> Array<T, D>
+pub fn par_arr_operation<'a, T, D, F>(arr_view: &'a ArrayView<T, D>, operation: F) -> Array<T, D>
 where
     T: Copy + Send + Sync,
     D: Dimension + RemoveAxis,

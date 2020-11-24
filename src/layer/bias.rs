@@ -56,6 +56,13 @@ where
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::Accurate(self.bias_arr.len())
     }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(Self {
+            is_frozen: true,
+            bias_arr: self.bias_arr.into_owned(),
+        })
+    }
 }
 
 impl<T> Bias<T>

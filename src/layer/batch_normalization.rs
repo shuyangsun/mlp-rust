@@ -19,6 +19,19 @@ where
     beta: ArrayD<T>, // 1 x n
 }
 
+pub struct BatchNormalizationFrozen<T>
+where
+    T: MLPFloat,
+{
+    is_frozen: bool,
+    size: usize,
+    mean: ArrayD<T>,     // n
+    variance: ArrayD<T>, // n
+    moving_batch_size: usize,
+    gama: ArrayD<T>, // 1 x n
+    beta: ArrayD<T>, // 1 x n
+}
+
 impl<T> BatchNormalization<T>
 where
     T: MLPFloat,
