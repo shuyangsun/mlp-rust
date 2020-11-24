@@ -16,6 +16,16 @@ where
     last_batch_size: RefCell<usize>,
 }
 
+#[derive(Clone)]
+struct InputNormalizationFrozen<T>
+where
+    T: MLPFloat,
+{
+    size: usize,
+    min: ArrayD<T>,
+    std_stable: ArrayD<T>,
+}
+
 impl<T> InputNormalization<T>
 where
     T: MLPFloat,
@@ -71,6 +81,50 @@ where
 
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::Accurate(self.size * 2)
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        let min = if self.moving_min.borrow().as_ref().is_some() {
+            self.moving_min.borrow().as_ref().unwrap().clone()
+        } else {
+            ArrayD::zeros(vec![self.size])
+        };
+        let std_stable = if self.moving_variance.borrow().as_ref().is_some() {
+            calculate_std_from_variance(self.moving_variance.borrow().as_ref().unwrap(), true)
+        } else {
+            ArrayD::ones(vec![self.size])
+        };
+
+        Box::new(InputNormalizationFrozen {
+            size: self.size,
+            min,
+            std_stable,
+        })
+    }
+}
+
+impl<T> Tensor<T> for InputNormalizationFrozen<T>
+where
+    T: MLPFloat,
+{
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        (&input - &self.min.view()) / &self.std_stable.view()
+    }
+
+    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
+        unimplemented!() // Should not be ran since it's only on the input layer.
+    }
+
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate((self.size + 1) * 2)
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(self.size * 2)
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(self.clone())
     }
 }
 

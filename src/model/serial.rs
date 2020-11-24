@@ -1,4 +1,4 @@
-use crate::utility::counter::CounterEst;
+use crate::utility::{counter::CounterEst, linalg::par_arr_operation};
 use crate::{DataSet, LayerChain, Loss, MLPFLoatRandSampling, MLPFloat, Model, Optimizer, Tensor};
 use ndarray::{ArrayD, ArrayViewD, IxDyn};
 
@@ -7,30 +7,14 @@ where
     T: MLPFloat,
 {
     layer_chain: LayerChain<T>,
+    layer_chain_frozen: Option<Box<dyn Tensor<T> + Sync>>,
     loss_function: Loss,
 }
 
 impl<T> Serial<T>
 where
-    T: MLPFLoatRandSampling,
+    T: MLPFloat,
 {
-    pub fn new(loss_function: Loss) -> Self {
-        Self {
-            layer_chain: LayerChain::new(),
-            loss_function,
-        }
-    }
-
-    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
-        layers: I,
-        loss_function: Loss,
-    ) -> Self {
-        Self {
-            layer_chain: LayerChain::new_from_sublayers(layers),
-            loss_function,
-        }
-    }
-
     pub fn add(&mut self, layer: Box<dyn Tensor<T>>) {
         self.layer_chain.push(layer);
     }
@@ -45,6 +29,32 @@ where
 
     pub fn num_operations_per_forward(&self) -> CounterEst<usize> {
         self.layer_chain.num_operations_per_forward()
+    }
+
+    fn update_frozen(&mut self) {
+        self.layer_chain_frozen = Some(self.layer_chain.to_frozen());
+    }
+}
+
+impl<T> Serial<T>
+where
+    T: MLPFLoatRandSampling,
+{
+    pub fn new(loss_function: Loss) -> Self {
+        Self::new_from_layers(vec![], loss_function)
+    }
+
+    pub fn new_from_layers<I: IntoIterator<Item = Box<dyn Tensor<T>>>>(
+        layers: I,
+        loss_function: Loss,
+    ) -> Self {
+        let mut res = Self {
+            layer_chain: LayerChain::new_from_sublayers(layers),
+            layer_chain_frozen: None,
+            loss_function,
+        };
+        res.update_frozen();
+        res
     }
 }
 
@@ -85,15 +95,20 @@ where
             }
             data.shuffle_train();
         }
+        self.update_frozen();
     }
 
     fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        let layers = self.layer_chain_frozen.as_ref().unwrap();
         self.loss_function
-            .predict(self.layer_chain.predict(input).view(), false)
+            .predict(layers.forward(input).view(), false)
     }
 
     fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        self.loss_function
-            .predict(self.layer_chain.par_predict(input.into_dyn()).view(), true)
+        let loss = self.loss_function.clone();
+        let layers = self.layer_chain_frozen.as_ref().unwrap();
+        par_arr_operation(&input, |arr: &ArrayViewD<T>| {
+            loss.predict(layers.forward(arr.clone()).view(), false)
+        })
     }
 }

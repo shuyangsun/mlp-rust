@@ -1,4 +1,4 @@
-use crate::utility::{counter::CounterEst, linalg::par_arr_operation};
+use crate::utility::counter::CounterEst;
 use crate::{Dense, MLPFloat, Optimizer, Tensor};
 use ndarray::{ArrayD, ArrayViewD};
 use std::cell::RefCell;
@@ -10,6 +10,13 @@ where
     is_frozen: bool,
     layers: Vec<Box<dyn Tensor<T>>>,
     layer_outputs: RefCell<Vec<ArrayD<T>>>,
+}
+
+pub struct LayerChainFrozen<T>
+where
+    T: MLPFloat,
+{
+    layers: Vec<Box<dyn Tensor<T> + Sync>>,
 }
 
 impl<T> LayerChain<T>
@@ -38,12 +45,6 @@ where
 
     pub fn predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
         self.forward_helper(input, false, false)
-    }
-
-    pub fn par_predict(&self, input: ArrayViewD<T>) -> ArrayD<T> {
-        par_arr_operation(&input, |arr: &ArrayViewD<T>| {
-            self.forward_helper(arr.clone(), false, false)
-        })
     }
 
     pub fn dense_l2_sum(&self) -> T {
@@ -166,6 +167,37 @@ where
             res += layer.num_operations_per_forward();
         }
         res
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(LayerChainFrozen {
+            layers: self.layers.iter().map(|layer| layer.to_frozen()).collect(),
+        })
+    }
+}
+
+impl<T> Tensor<T> for LayerChainFrozen<T>
+where
+    T: MLPFloat,
+{
+    fn forward(&self, input: ArrayViewD<'_, T>) -> ArrayD<T> {
+        let mut cur_input = self.layers.first().unwrap().forward(input);
+        for layer in &self.layers[1..] {
+            cur_input = layer.forward(cur_input.view());
+        }
+        cur_input
+    }
+
+    fn backward_respect_to_input(&self, _: ArrayViewD<'_, T>, _: ArrayViewD<'_, T>) -> ArrayD<T> {
+        unimplemented!()
+    }
+
+    fn par_forward(&self, _: ArrayViewD<'_, T>) -> ArrayD<T> {
+        unimplemented!()
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        unimplemented!("Calling to_frozen on already frozen chain.")
     }
 }
 

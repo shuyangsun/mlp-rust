@@ -1,4 +1,4 @@
-use crate::utility::{counter::CounterEst, math::eps};
+use crate::utility::{counter::CounterEst, math::calculate_std_from_variance};
 use crate::{MLPFloat, Tensor};
 use ndarray::{Array2, ArrayD, ArrayViewD, Axis};
 use std::cell::RefCell;
@@ -19,17 +19,17 @@ where
     beta: ArrayD<T>, // 1 x n
 }
 
-pub struct BatchNormalizationFrozen<T>
+#[derive(Clone)]
+struct BatchNormalizationFrozen<T>
 where
     T: MLPFloat,
 {
     is_frozen: bool,
     size: usize,
-    mean: ArrayD<T>,     // n
-    variance: ArrayD<T>, // n
-    moving_batch_size: usize,
-    gama: ArrayD<T>, // 1 x n
-    beta: ArrayD<T>, // 1 x n
+    mean: ArrayD<T>,       // n
+    std_stable: ArrayD<T>, // n
+    gama: ArrayD<T>,       // 1 x n
+    beta: ArrayD<T>,       // 1 x n
 }
 
 impl<T> BatchNormalization<T>
@@ -58,12 +58,10 @@ where
                 Some(self.last_variance.borrow().as_ref().unwrap().clone());
         }
 
-        let mut std_stable = self.last_variance.borrow().as_ref().unwrap().clone();
-        if is_parallel {
-            std_stable.par_mapv_inplace(|ele| (ele + eps()).sqrt());
-        } else {
-            std_stable.mapv_inplace(|ele| (ele + eps()).sqrt());
-        }
+        let std_stable = calculate_std_from_variance(
+            &self.last_variance.borrow().as_ref().unwrap(),
+            is_parallel,
+        );
         let input_normalized =
             (&input - &self.last_mean.borrow().as_ref().unwrap().view()) / &std_stable.view();
         input_normalized * &self.gama + &self.beta
@@ -96,6 +94,57 @@ where
 
     fn num_operations_per_forward(&self) -> CounterEst<usize> {
         CounterEst::Accurate(self.size * 2)
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        let mean = if self.moving_mean.borrow().as_ref().is_some() {
+            self.moving_mean.borrow().as_ref().unwrap().clone()
+        } else {
+            ArrayD::zeros(vec![self.size])
+        };
+        let std_stable = if self.moving_variance.borrow().as_ref().is_some() {
+            calculate_std_from_variance(self.moving_variance.borrow().as_ref().unwrap(), true)
+        } else {
+            ArrayD::ones(vec![self.size])
+        };
+        Box::new(BatchNormalizationFrozen {
+            is_frozen: true,
+            size: self.size,
+            mean,
+            std_stable,
+            gama: self.gama.clone(),
+            beta: self.beta.clone(), // 1 x n
+        })
+    }
+}
+
+impl<T> Tensor<T> for BatchNormalizationFrozen<T>
+where
+    T: MLPFloat,
+{
+    fn forward(&self, input: ArrayViewD<T>) -> ArrayD<T> {
+        let input_normalized = (&input - &self.mean.view()) / &self.std_stable.view();
+        input_normalized * &self.gama + &self.beta
+    }
+
+    fn backward_respect_to_input(&self, _: ArrayViewD<T>, _: ArrayViewD<T>) -> ArrayD<T> {
+        unimplemented!()
+    }
+
+    fn is_frozen(&self) -> bool {
+        true
+    }
+
+    fn num_parameters(&self) -> CounterEst<usize> {
+        CounterEst::Accurate((self.size + 1) * 2)
+    }
+
+    fn num_operations_per_forward(&self) -> CounterEst<usize> {
+        CounterEst::Accurate(self.size * 2)
+    }
+
+    fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
+        Box::new(self.clone())
     }
 }
 

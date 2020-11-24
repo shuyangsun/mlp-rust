@@ -4,6 +4,7 @@ use ndarray::{ArrayD, ArrayView1, ArrayViewD, Axis};
 use ndarray_stats;
 use ndarray_stats::QuantileExt;
 
+#[derive(Clone)]
 pub enum Loss {
     MSE,
     SoftmaxCrossEntropy,

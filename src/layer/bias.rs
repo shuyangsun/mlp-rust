@@ -60,7 +60,7 @@ where
     fn to_frozen(&self) -> Box<dyn Tensor<T> + Sync> {
         Box::new(Self {
             is_frozen: true,
-            bias_arr: self.bias_arr.into_owned(),
+            bias_arr: self.bias_arr.clone(),
         })
     }
 }
