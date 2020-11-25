@@ -40,7 +40,7 @@ where
 }
 
 fn mlp_forward_benchmark_small_network_small_sample(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Small Network Small Sample");
+    let mut group = c.benchmark_group("SS");
     let feature_size = 28 * 28;
     let output_size = 1;
 
@@ -55,10 +55,10 @@ fn mlp_forward_benchmark_small_network_small_sample(c: &mut Criterion) {
             false,
         );
         let dataset_f32 = gen_data_set::<f32>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser32", size), size, |b, _| {
             b.iter(|| simple_dnn_f32.predict(dataset_f32.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par32", size), size, |b, _| {
             b.iter(|| simple_dnn_f32.par_predict(dataset_f32.train_data().0))
         });
 
@@ -71,10 +71,10 @@ fn mlp_forward_benchmark_small_network_small_sample(c: &mut Criterion) {
             false,
         );
         let dataset_f64 = gen_data_set::<f64>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser64", size), size, |b, _| {
             b.iter(|| simple_dnn_f64.predict(dataset_f64.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par64", size), size, |b, _| {
             b.iter(|| simple_dnn_f64.par_predict(dataset_f64.train_data().0))
         });
     }
@@ -82,7 +82,7 @@ fn mlp_forward_benchmark_small_network_small_sample(c: &mut Criterion) {
 }
 
 fn mlp_forward_benchmark_small_network_large_sample(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Small Network Large Sample");
+    let mut group = c.benchmark_group("SL");
     let feature_size = 28 * 28;
     let output_size = 1;
 
@@ -98,10 +98,10 @@ fn mlp_forward_benchmark_small_network_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_f32 = gen_data_set::<f32>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser32", size), size, |b, _| {
             b.iter(|| simple_dnn_f32.predict(dataset_f32.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par32", size), size, |b, _| {
             b.iter(|| simple_dnn_f32.par_predict(dataset_f32.train_data().0))
         });
 
@@ -114,10 +114,10 @@ fn mlp_forward_benchmark_small_network_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_f64 = gen_data_set::<f64>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser64", size), size, |b, _| {
             b.iter(|| simple_dnn_f64.predict(dataset_f64.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par64", size), size, |b, _| {
             b.iter(|| simple_dnn_f64.par_predict(dataset_f64.train_data().0))
         });
     }
@@ -125,7 +125,7 @@ fn mlp_forward_benchmark_small_network_large_sample(c: &mut Criterion) {
 }
 
 fn mlp_forward_benchmark_large_network_small_sample(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Large Network Small Sample");
+    let mut group = c.benchmark_group("LS");
     let feature_size = 28 * 28;
     let output_size = 1;
 
@@ -141,10 +141,10 @@ fn mlp_forward_benchmark_large_network_small_sample(c: &mut Criterion) {
             false,
         );
         let dataset_32 = gen_data_set::<f32>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser32", size), size, |b, _| {
             b.iter(|| simple_dnn_32.predict(dataset_32.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par32", size), size, |b, _| {
             b.iter(|| simple_dnn_32.par_predict(dataset_32.train_data().0))
         });
 
@@ -157,10 +157,10 @@ fn mlp_forward_benchmark_large_network_small_sample(c: &mut Criterion) {
             false,
         );
         let dataset_64 = gen_data_set::<f64>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Serial f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Ser64", size), size, |b, _| {
             b.iter(|| simple_dnn_64.predict(dataset_64.train_data().0))
         });
-        group.bench_with_input(BenchmarkId::new("Parallel f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par64", size), size, |b, _| {
             b.iter(|| simple_dnn_64.par_predict(dataset_64.train_data().0))
         });
     }
@@ -168,7 +168,7 @@ fn mlp_forward_benchmark_large_network_small_sample(c: &mut Criterion) {
 }
 
 fn mlp_forward_benchmark_large_network_large_sample(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Large Network Large Sample");
+    let mut group = c.benchmark_group("LL");
     group.sample_size(10);
     let feature_size = 28 * 28;
     let output_size = 1;
@@ -185,7 +185,7 @@ fn mlp_forward_benchmark_large_network_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_32 = gen_data_set::<f32>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Parallel f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par32", size), size, |b, _| {
             b.iter(|| simple_dnn_32.par_predict(dataset_32.train_data().0))
         });
 
@@ -198,7 +198,7 @@ fn mlp_forward_benchmark_large_network_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_64 = gen_data_set::<f64>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Parallel f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par64", size), size, |b, _| {
             b.iter(|| simple_dnn_64.par_predict(dataset_64.train_data().0))
         });
     }
@@ -206,7 +206,7 @@ fn mlp_forward_benchmark_large_network_large_sample(c: &mut Criterion) {
 }
 
 fn mlp_forward_benchmark_large_network_extra_large_sample(c: &mut Criterion) {
-    let mut group = c.benchmark_group("Large Network Extra Large Sample");
+    let mut group = c.benchmark_group("LXL");
     group.sample_size(10);
     let feature_size = 28 * 28;
     let output_size = 1;
@@ -223,7 +223,7 @@ fn mlp_forward_benchmark_large_network_extra_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_32 = gen_data_set::<f32>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Parallel f32", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par32", size), size, |b, _| {
             b.iter(|| simple_dnn_32.par_predict(dataset_32.train_data().0))
         });
 
@@ -236,7 +236,7 @@ fn mlp_forward_benchmark_large_network_extra_large_sample(c: &mut Criterion) {
             false,
         );
         let dataset_64 = gen_data_set::<f64>(size.clone(), feature_size, output_size, 0.);
-        group.bench_with_input(BenchmarkId::new("Parallel f64", size), size, |b, _| {
+        group.bench_with_input(BenchmarkId::new("Par64", size), size, |b, _| {
             b.iter(|| simple_dnn_64.par_predict(dataset_64.train_data().0))
         });
     }
