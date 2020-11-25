@@ -62,3 +62,11 @@ rpath = false
 [[bench]]
 name = "mlp_benchmark"
 harness = false
+
+[lib]
+bench = false
+
+[[bin]]
+name = "mlp_rust_demo"
+path = "src/main.rs"
+bench = false
